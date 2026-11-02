@@ -103,38 +103,28 @@ export const ProfessionalPortal: React.FC<ProfessionalPortalProps> = ({
 
   return (
     <div className="min-h-screen bg-[#08080a] text-neutral-100 flex flex-col">
-      {/* Top Header */}
+      {/* Top Header Strip */}
       <div className="bg-[#0e0e13] border-b border-white/[0.08] px-4 sm:px-6 lg:px-8 py-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4 w-full sm:w-auto">
-            <button
-              onClick={onBackToPublic}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#16161e] text-neutral-300 hover:text-white border border-white/10 text-xs transition-colors cursor-pointer"
-            >
-              <ArrowLeft size={14} />
-              <span>Sair / Vitrine</span>
-            </button>
-
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-full overflow-hidden border-2 border-[#d4af37]/50 shadow-md">
-                <img
-                  src={currentPro.avatarUrl}
-                  alt={currentPro.name}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#d4af37]/50 shadow-md shrink-0">
+              <img
+                src={currentPro.avatarUrl}
+                alt={currentPro.name}
+                className="w-full h-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-lg font-serif font-bold text-white">
+                  {currentPro.name}
+                </h1>
+                <span className="text-[10px] font-semibold text-[#d4af37] bg-[#d4af37]/15 px-2 py-0.5 rounded-full border border-[#d4af37]/30">
+                  Comissão {currentPro.commissionRate}%
+                </span>
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="text-base font-serif font-bold text-white">
-                    {currentPro.name}
-                  </h1>
-                  <span className="text-[10px] font-semibold text-[#d4af37] bg-[#d4af37]/15 px-2 py-0.5 rounded-full border border-[#d4af37]/30">
-                    Comissão {currentPro.commissionRate}%
-                  </span>
-                </div>
-                <p className="text-xs text-neutral-400">{currentPro.roleTitle}</p>
-              </div>
+              <p className="text-xs text-neutral-400">{currentPro.roleTitle}</p>
             </div>
           </div>
 

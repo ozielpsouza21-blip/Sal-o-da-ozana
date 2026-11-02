@@ -1,110 +1,57 @@
 /**
- * Supabase Architecture Bridge & Client Configuration
+ * Supabase Official Client Configuration (Projeto: Espaçobelamulher)
  * 
- * Este arquivo define a arquitetura pronta para futura conexão direta com o Supabase
- * (Autenticação, Banco de Dados PostgreSQL, Storage de Fotos e Real-time Channels),
- * com camada local totalmente desacoplada e reativa.
+ * Conexão oficial usando @supabase/supabase-js, alimentada por variáveis de ambiente
+ * VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY.
+ * 
+ * Se as variáveis ainda não tiverem sido configuradas no ambiente, o cliente
+ * permanece nulo de forma segura, permitindo que a aplicação continue operando
+ * localmente com dados preservados.
  */
 
-export interface SupabaseConfig {
-  supabaseUrl: string | null;
-  supabaseAnonKey: string | null;
-  isConfigured: boolean;
-}
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-// Obter variáveis de ambiente seguras (sem expor credenciais reais)
-export const getSupabaseConfig = (): SupabaseConfig => {
-  const url = import.meta.env.VITE_SUPABASE_URL || null;
-  const key = import.meta.env.VITE_SUPABASE_ANON_KEY || null;
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
+/**
+ * Valida se as variáveis de ambiente necessárias para o projeto Espaçobelamulher foram informadas
+ */
+export const isSupabaseConfigured = (): boolean => {
+  return Boolean(
+    supabaseUrl &&
+    supabaseAnonKey &&
+    supabaseUrl.startsWith('https://') &&
+    !supabaseUrl.includes('SEU_PROJETO')
+  );
+};
+
+export const getSupabaseConfig = () => {
   return {
-    supabaseUrl: url,
-    supabaseAnonKey: key,
-    isConfigured: Boolean(url && key),
+    supabaseUrl: supabaseUrl || null,
+    supabaseAnonKey: supabaseAnonKey || null,
+    isConfigured: isSupabaseConfigured(),
+    targetProjectName: 'Espaçobelamulher',
   };
 };
 
 /**
- * Interface padronizada para repositórios compatíveis com Supabase
+ * Instância oficial do cliente Supabase.
+ * Inicializada apenas quando URL e Anon Key válidas estiverem presentes.
+ */
+export const supabase: SupabaseClient | null = isSupabaseConfigured()
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+      },
+    })
+  : null;
+
+/**
+ * Interface padronizada para respostas de repositórios
  */
 export interface SupabaseQueryResponse<T> {
   data: T | null;
   error: { message: string; details?: string } | null;
 }
-
-export interface SupabaseClientContract {
-  auth: {
-    getUser: () => Promise<SupabaseQueryResponse<{ id: string; email: string; role: string }>>;
-    signInWithPassword: (credentials: { email: string; password?: string }) => Promise<SupabaseQueryResponse<{ token: string }>>;
-    signOut: () => Promise<SupabaseQueryResponse<boolean>>;
-  };
-  from: <T = any>(table: string) => {
-    select: (columns?: string) => Promise<SupabaseQueryResponse<T[]>>;
-    insert: (values: Partial<T> | Partial<T>[]) => Promise<SupabaseQueryResponse<T[]>>;
-    update: (values: Partial<T>) => { eq: (column: string, value: any) => Promise<SupabaseQueryResponse<T[]>> };
-    delete: () => { eq: (column: string, value: any) => Promise<SupabaseQueryResponse<boolean>> };
-  };
-  storage: {
-    from: (bucket: string) => {
-      upload: (path: string, file: Blob) => Promise<SupabaseQueryResponse<{ path: string }>>;
-      getPublicUrl: (path: string) => { data: { publicUrl: string } };
-    };
-  };
-  channel: (channelName: string) => {
-    on: (event: string, filter: any, callback: (payload: any) => void) => any;
-    subscribe: () => void;
-    unsubscribe: () => void;
-  };
-}
-
-/**
- * Cliente representativo preparado para conectar ao Supabase quando as variáveis de ambiente forem injetadas
- */
-export const supabaseClient: SupabaseClientContract = {
-  auth: {
-    getUser: async () => ({
-      data: { id: 'usr-admin-1', email: 'contato@srabélamulher.com.br', role: 'admin' },
-      error: null,
-    }),
-    signInWithPassword: async () => ({
-      data: { token: 'mock-session-token' },
-      error: null,
-    }),
-    signOut: async () => ({
-      data: true,
-      error: null,
-    }),
-  },
-  from: <T = any>(_table: string) => ({
-    select: async () => {
-      // Carregado através da camada de Storage Reativo
-      return { data: [] as T[], error: null };
-    },
-    insert: async (values: Partial<T> | Partial<T>[]) => {
-      const arr = Array.isArray(values) ? values : [values];
-      return { data: arr as unknown as T[], error: null };
-    },
-    update: (values: Partial<T>) => ({
-      eq: async () => ({ data: [values] as unknown as T[], error: null }),
-    }),
-    delete: () => ({
-      eq: async () => ({ data: true, error: null }),
-    }),
-  }),
-  storage: {
-    from: (bucket: string) => ({
-      upload: async (path: string) => ({
-        data: { path: `${bucket}/${path}` },
-        error: null,
-      }),
-      getPublicUrl: (path: string) => ({
-        data: { publicUrl: `/uploads/${path}` },
-      }),
-    }),
-  },
-  channel: (channelName: string) => ({
-    on: () => ({}),
-    subscribe: () => {},
-    unsubscribe: () => {},
-  }),
-};

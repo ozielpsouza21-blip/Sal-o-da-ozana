@@ -136,16 +136,14 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#08080a] text-neutral-100 flex flex-col font-sans selection:bg-[#d4af37]/30 selection:text-[#f3e5ab]">
-      {/* Top Header shown only on Public view to maintain top bar contract */}
-      {role === 'visitor' && (
-        <Header
-          currentRole={role}
-          onSelectRole={newRole => setRole(newRole)}
-          activePublicTab={publicTab}
-          onSelectPublicTab={tab => setPublicTab(tab)}
-          onOpenBookingModal={() => handleOpenBooking()}
-        />
-      )}
+      {/* Top Header persistent for clean, unified navigation across all roles */}
+      <Header
+        currentRole={role}
+        onSelectRole={newRole => setRole(newRole)}
+        activePublicTab={publicTab}
+        onSelectPublicTab={tab => setPublicTab(tab)}
+        onOpenBookingModal={() => handleOpenBooking()}
+      />
 
       {/* Role View Router */}
       {role === 'visitor' && (

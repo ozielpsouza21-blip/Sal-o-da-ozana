@@ -147,50 +147,39 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
       {/* Top Banner and Client Switcher */}
       <div className="relative bg-[#0d0d12] border-b border-white/[0.08]">
         {/* Customizable Banner Image */}
-        <div className="h-44 sm:h-56 w-full relative overflow-hidden bg-[#14141c]">
+        <div className="h-36 sm:h-48 w-full relative overflow-hidden bg-[#14141c]">
           <img
             src={currentClient.bannerUrl || '/src/assets/images/hero_salon_luxury_interior_1793577409043.jpg'}
             alt="Banner de Capa"
             className="w-full h-full object-cover opacity-60"
             referrerPolicy="no-referrer"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d12] via-[#0d0d12]/50 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d12] via-[#0d0d12]/40 to-transparent" />
 
-          {/* Navigation Bar inside Banner */}
-          <div className="absolute top-4 left-4 right-4 max-w-7xl mx-auto flex items-center justify-between">
-            <button
-              onClick={onBackToPublic}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-md text-xs font-medium text-neutral-200 hover:text-white border border-white/10 hover:border-[#d4af37]/40 transition-colors cursor-pointer"
+          {/* Client Profile Selector (demo test switcher) */}
+          <div className="absolute top-3 right-4 max-w-7xl mx-auto flex items-center gap-2 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 text-xs z-10">
+            <span className="text-neutral-400 hidden sm:inline">Perfil Ativo:</span>
+            <select
+              value={currentClient.id}
+              onChange={e => {
+                const found = clients.find(c => c.id === e.target.value);
+                if (found) {
+                  onSelectClient(found);
+                  setEditName(found.name);
+                  setEditPhone(found.phone);
+                  setEditPreferences(found.preferences || '');
+                  setEditAllergies(found.allergies || '');
+                  setEditDrink(found.favoriteDrink || '');
+                }
+              }}
+              className="bg-transparent text-[#f3e5ab] font-medium focus:outline-none cursor-pointer"
             >
-              <ArrowLeft size={14} />
-              <span>Voltar para a Vitrine</span>
-            </button>
-
-            {/* Client Profile Selector (demo test switcher) */}
-            <div className="flex items-center gap-2 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 text-xs">
-              <span className="text-neutral-400 hidden sm:inline">Perfil Ativo:</span>
-              <select
-                value={currentClient.id}
-                onChange={e => {
-                  const found = clients.find(c => c.id === e.target.value);
-                  if (found) {
-                    onSelectClient(found);
-                    setEditName(found.name);
-                    setEditPhone(found.phone);
-                    setEditPreferences(found.preferences || '');
-                    setEditAllergies(found.allergies || '');
-                    setEditDrink(found.favoriteDrink || '');
-                  }
-                }}
-                className="bg-transparent text-[#f3e5ab] font-medium focus:outline-none cursor-pointer"
-              >
-                {clients.map(c => (
-                  <option key={c.id} value={c.id} className="bg-[#121216] text-white">
-                    {c.name} ({c.vipTier})
-                  </option>
-                ))}
-              </select>
-            </div>
+              {clients.map(c => (
+                <option key={c.id} value={c.id} className="bg-[#121216] text-white">
+                  {c.name} ({c.vipTier})
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
