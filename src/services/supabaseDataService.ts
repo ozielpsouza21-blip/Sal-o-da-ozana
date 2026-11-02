@@ -1,17 +1,17 @@
 /**
  * Supabase Data Service Adapter (Projeto: Espaçobelamulher)
  * 
- * Camada de integração pronta para conexão remota com o banco Supabase.
+ * Camada de integração bidirecional (leitura e gravação) pronta para a conexão remota com o banco Supabase.
  * Mapeia os dados da aplicação (camelCase) para as tabelas relacionais do Supabase (snake_case).
  * 
- * Caso as tabelas ainda não tenham sido criadas ou ocorra instabilidade de rede,
- * a camada retorna automaticamente o estado do StorageService local sem interrupção.
+ * Mantém sincronização com o StorageService local para resiliência offline e transição transparente.
  */
 
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import { StorageService } from './storage';
 import {
   Appointment,
+  AppointmentStatus,
   CashRegisterStatus,
   CashTransaction,
   ChatMessage,
@@ -51,11 +51,44 @@ export const SupabaseDataService = {
         image: item.image_url || item.image || '',
         popular: Boolean(item.popular),
         featuredInVitrine: Boolean(item.featured_in_vitrine ?? item.featuredInVitrine ?? true),
-        active: Boolean(item.active ?? true),
+        active: Boolean(item.ativo ?? item.active ?? true),
       }));
     } catch {
       return StorageService.getServices();
     }
+  },
+
+  createService: async (service: Omit<Service, 'id'>): Promise<Service> => {
+    const local = StorageService.addService(service);
+    if (!isSupabaseConfigured() || !supabase) return local;
+
+    try {
+      const { data, error } = await supabase
+        .from('servicos')
+        .insert({
+          name: service.name,
+          category: service.category,
+          duration_minutes: service.durationMinutes,
+          price_brl: service.priceBRL,
+          description: service.description,
+          image_url: service.image,
+          popular: service.popular || false,
+          featured_in_vitrine: service.featuredInVitrine ?? true,
+          ativo: service.active ?? true,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        return {
+          ...local,
+          id: data.id,
+        };
+      }
+    } catch (e) {
+      console.warn('Persistência remota de serviço falhou, mantido localmente:', e);
+    }
+    return local;
   },
 
   // --------------------------------------------------------------------------
@@ -87,11 +120,43 @@ export const SupabaseDataService = {
         commissionRate: Number(item.commission_rate || item.commission_rate_percent || 40),
         phone: item.phone || '(11) 98765-4321',
         email: item.email || 'contato@belamulher.com.br',
-        active: Boolean(item.active ?? true),
+        active: Boolean(item.ativo ?? item.active ?? true),
       }));
     } catch {
       return StorageService.getProfessionals();
     }
+  },
+
+  createProfessional: async (pro: Omit<Professional, 'id'>): Promise<Professional> => {
+    const local = StorageService.addProfessional(pro);
+    if (!isSupabaseConfigured() || !supabase) return local;
+
+    try {
+      const { data, error } = await supabase
+        .from('profissionais')
+        .insert({
+          name: pro.name,
+          role_title: pro.roleTitle,
+          avatar_url: pro.avatarUrl,
+          bio: pro.bio,
+          rating: pro.rating,
+          reviews_count: pro.reviewsCount,
+          commission_rate: pro.commissionRate,
+          specialties: pro.specialties,
+          phone: pro.phone,
+          email: pro.email,
+          ativo: pro.active,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        return { ...local, id: data.id };
+      }
+    } catch (e) {
+      console.warn('Persistência remota de profissional falhou, mantido localmente:', e);
+    }
+    return local;
   },
 
   // --------------------------------------------------------------------------
@@ -129,6 +194,36 @@ export const SupabaseDataService = {
     }
   },
 
+  createClient: async (cli: Omit<ClientProfile, 'id' | 'createdAt'>): Promise<ClientProfile> => {
+    const local = StorageService.addClient(cli);
+    if (!isSupabaseConfigured() || !supabase) return local;
+
+    try {
+      const { data, error } = await supabase
+        .from('clientes')
+        .insert({
+          name: cli.name,
+          email: cli.email,
+          phone: cli.phone,
+          avatar_url: cli.avatarUrl,
+          vip_tier: cli.vipTier || 'Bronze',
+          vip_points: cli.vipPoints || 0,
+          preferences: cli.preferences,
+          allergies: cli.allergies,
+          favorite_drink: cli.favoriteDrink,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        return { ...local, id: data.id };
+      }
+    } catch (e) {
+      console.warn('Persistência remota de cliente falhou, mantido localmente:', e);
+    }
+    return local;
+  },
+
   // --------------------------------------------------------------------------
   // 4. PRODUTOS & BOUTIQUE HOME CARE
   // --------------------------------------------------------------------------
@@ -164,6 +259,38 @@ export const SupabaseDataService = {
     }
   },
 
+  createProduct: async (product: Omit<Product, 'id'>): Promise<Product> => {
+    const local = StorageService.addProduct(product);
+    if (!isSupabaseConfigured() || !supabase) return local;
+
+    try {
+      const { data, error } = await supabase
+        .from('produtos')
+        .insert({
+          sku: product.sku,
+          name: product.name,
+          category: product.category,
+          brand: product.brand,
+          cost_price_brl: product.costPriceBRL,
+          sale_price_brl: product.salePriceBRL,
+          stock_quantity: product.stockQuantity,
+          min_stock_alert: product.minStockAlert,
+          image_url: product.image,
+          featured_in_vitrine: product.featuredInVitrine ?? true,
+          ativo: true,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        return { ...local, id: data.id };
+      }
+    } catch (e) {
+      console.warn('Persistência remota de produto falhou, mantido localmente:', e);
+    }
+    return local;
+  },
+
   // --------------------------------------------------------------------------
   // 5. AGENDAMENTOS
   // --------------------------------------------------------------------------
@@ -189,19 +316,73 @@ export const SupabaseDataService = {
         clientAvatar: item.client_avatar || '',
         professionalId: item.professional_id || '',
         professionalName: item.professional_name || '',
-        serviceId: item.service_id || '',
+        serviceId: item.servico_id || item.service_id || '',
         serviceName: item.service_name || '',
         date: item.appointment_date || item.date || '',
         time: item.appointment_time || item.time || '',
         durationMinutes: Number(item.duration_minutes || 60),
         priceBRL: Number(item.price_brl || 0),
-        status: item.status || 'confirmado',
+        status: item.status || 'agendado',
         paymentMethod: item.payment_method || 'pendente',
         notes: item.notes || '',
         formulaRecord: item.formula_record || '',
       }));
     } catch {
       return StorageService.getAppointments();
+    }
+  },
+
+  createAppointment: async (apt: Omit<Appointment, 'id'>): Promise<Appointment> => {
+    const local = StorageService.addAppointment(apt);
+    if (!isSupabaseConfigured() || !supabase) return local;
+
+    try {
+      const { data, error } = await supabase
+        .from('agendamentos')
+        .insert({
+          client_name: apt.clientName,
+          client_phone: apt.clientPhone,
+          client_avatar: apt.clientAvatar,
+          professional_id: apt.professionalId,
+          professional_name: apt.professionalName,
+          servico_id: apt.serviceId,
+          service_name: apt.serviceName,
+          appointment_date: apt.date,
+          appointment_time: apt.time,
+          duration_minutes: apt.durationMinutes,
+          price_brl: apt.priceBRL,
+          status: apt.status || 'agendado',
+          payment_method: apt.paymentMethod || 'pendente',
+          notes: apt.notes,
+          formula_record: apt.formulaRecord,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        return { ...local, id: data.id };
+      }
+    } catch (e) {
+      console.warn('Persistência remota de agendamento falhou, mantido localmente:', e);
+    }
+    return local;
+  },
+
+  updateAppointmentStatus: async (id: string, status: AppointmentStatus, formulaRecord?: string) => {
+    StorageService.updateAppointmentStatus(id, status, formulaRecord);
+    if (!isSupabaseConfigured() || !supabase) return;
+
+    try {
+      await supabase
+        .from('agendamentos')
+        .update({
+          status,
+          formula_record: formulaRecord,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+    } catch (e) {
+      console.warn('Atualização remota de agendamento falhou:', e);
     }
   },
 
@@ -265,6 +446,33 @@ export const SupabaseDataService = {
     } catch {
       return StorageService.getTransactions();
     }
+  },
+
+  addCashTransaction: async (trx: Omit<CashTransaction, 'id' | 'timestamp'>): Promise<CashTransaction> => {
+    const local = StorageService.addCashTransaction(trx);
+    if (!isSupabaseConfigured() || !supabase) return local;
+
+    try {
+      const { data, error } = await supabase
+        .from('transacoes_caixa')
+        .insert({
+          type: trx.type,
+          category: trx.category,
+          description: trx.description,
+          amount_brl: trx.amountBRL,
+          operator_name: trx.operatorName,
+          appointment_id: trx.appointmentId,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        return { ...local, id: data.id };
+      }
+    } catch (e) {
+      console.warn('Persistência remota de transação falhou:', e);
+    }
+    return local;
   },
 
   // --------------------------------------------------------------------------
@@ -332,6 +540,33 @@ export const SupabaseDataService = {
     }
   },
 
+  sendMessage: async (convId: string, message: Omit<ChatMessage, 'id' | 'timestamp' | 'conversationId'>): Promise<ChatMessage> => {
+    const local = StorageService.sendMessage(convId, message);
+    if (!isSupabaseConfigured() || !supabase) return local;
+
+    try {
+      const { data, error } = await supabase
+        .from('mensagens')
+        .insert({
+          conversation_id: convId,
+          sender_id: message.senderId,
+          sender_name: message.senderName,
+          sender_role: message.senderRole,
+          text: message.text,
+          is_read: message.isRead || false,
+        })
+        .select()
+        .single();
+
+      if (!error && data) {
+        return { ...local, id: data.id };
+      }
+    } catch (e) {
+      console.warn('Persistência remota de mensagem falhou:', e);
+    }
+    return local;
+  },
+
   // --------------------------------------------------------------------------
   // 8. CONFIGURAÇÕES & TEMA
   // --------------------------------------------------------------------------
@@ -367,6 +602,56 @@ export const SupabaseDataService = {
       };
     } catch {
       return StorageService.getTheme();
+    }
+  },
+
+  saveThemeConfig: async (theme: ThemeConfig): Promise<void> => {
+    StorageService.saveTheme(theme);
+    if (!isSupabaseConfigured() || !supabase) return;
+
+    try {
+      await supabase
+        .from('configuracoes_salao')
+        .upsert({
+          salon_name: theme.salonName,
+          salon_tagline: theme.salonTagline,
+          contact_phone: theme.contactPhone,
+          instagram_handle: theme.instagramHandle,
+          address: theme.address,
+          opening_hours: theme.openingHours,
+          primary_accent: theme.primaryAccent,
+          accent_light: theme.accentLight,
+          accent_subtle: theme.accentSubtle,
+          accent_border: theme.accentBorder,
+          card_surface: theme.cardSurface,
+          show_3d_particles: theme.show3dParticles,
+          updated_at: new Date().toISOString(),
+        });
+    } catch (e) {
+      console.warn('Atualização remota de tema falhou:', e);
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // 9. PERFIL DE USUÁRIO & AUTENTICAÇÃO
+  // --------------------------------------------------------------------------
+  fetchUserProfile: async (userId: string): Promise<{ role: string; name: string; email: string } | null> => {
+    if (!isSupabaseConfigured() || !supabase) return null;
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, email, role')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (error || !data) return null;
+      return {
+        role: data.role,
+        name: data.name,
+        email: data.email,
+      };
+    } catch {
+      return null;
     }
   },
 };

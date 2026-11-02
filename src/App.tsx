@@ -18,6 +18,8 @@ import {
   ThemeConfig,
 } from './types';
 import { StorageService } from './services/storage';
+import { SupabaseDataService } from './services/supabaseDataService';
+import { supabase } from './services/supabaseClient';
 
 // Common Components
 import { Header } from './components/common/Header';
@@ -61,16 +63,18 @@ export default function App() {
   const [bookingTime, setBookingTime] = useState<string>('15:00');
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
 
-  const loadAllData = () => {
-    const s = StorageService.getServices();
-    const p = StorageService.getProfessionals();
-    const c = StorageService.getClients();
-    const prd = StorageService.getProducts();
-    const a = StorageService.getAppointments();
-    const cs = StorageService.getCashStatus();
-    const tx = StorageService.getTransactions();
-    const conv = StorageService.getConversations();
-    const th = StorageService.getTheme();
+  const loadAllData = async () => {
+    const [s, p, c, prd, a, cs, tx, conv, th] = await Promise.all([
+      SupabaseDataService.fetchServices(),
+      SupabaseDataService.fetchProfessionals(),
+      SupabaseDataService.fetchClients(),
+      SupabaseDataService.fetchProducts(),
+      SupabaseDataService.fetchAppointments(),
+      SupabaseDataService.fetchCashStatus(),
+      SupabaseDataService.fetchTransactions(),
+      SupabaseDataService.fetchConversations(),
+      SupabaseDataService.fetchThemeConfig(),
+    ]);
 
     setServices(s);
     setProfessionals(p);
@@ -92,6 +96,32 @@ export default function App() {
 
   useEffect(() => {
     loadAllData();
+
+    if (supabase) {
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          SupabaseDataService.fetchUserProfile(session.user.id).then((profile) => {
+            if (profile?.role) {
+              setRole(profile.role as AppRole);
+            }
+          });
+        }
+      });
+
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          SupabaseDataService.fetchUserProfile(session.user.id).then((profile) => {
+            if (profile?.role) {
+              setRole(profile.role as AppRole);
+            }
+          });
+        }
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
   }, []);
 
   const handleOpenBooking = (serviceId?: string, professionalId?: string) => {
@@ -101,14 +131,14 @@ export default function App() {
     setIsBookingModalOpen(true);
   };
 
-  const handleConfirmPublicBooking = (e: React.FormEvent) => {
+  const handleConfirmPublicBooking = async (e: React.FormEvent) => {
     e.preventDefault();
     const service = services.find(s => s.id === bookingServiceId) || services[0];
     const pro = professionals.find(p => p.id === bookingProId) || professionals[0];
     const name = bookingClientName.trim() || 'Visitante Convidada';
     const phone = bookingClientPhone.trim() || '(11) 98765-4321';
 
-    StorageService.addAppointment({
+    await SupabaseDataService.createAppointment({
       clientId: `guest-${Date.now()}`,
       clientName: name,
       clientPhone: phone,
@@ -126,7 +156,7 @@ export default function App() {
       notes: 'Reserva efetuada pelo canal público de agendamento online.',
     });
 
-    loadAllData();
+    await loadAllData();
     setBookingConfirmed(true);
     setTimeout(() => {
       setIsBookingModalOpen(false);
