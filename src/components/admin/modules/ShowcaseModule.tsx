@@ -1,12 +1,5 @@
 import React, { useState } from 'react';
-import {
-  Sparkles,
-  Eye,
-  CheckCircle,
-  XCircle,
-  Layers,
-  Image as ImageIcon,
-} from 'lucide-react';
+import { Eye, Plus, Trash2, Edit2, X, Save } from 'lucide-react';
 import { Product, Service } from '../../../types';
 import { Card } from '../../common/Card';
 import { Button } from '../../common/Button';
@@ -26,145 +19,118 @@ export const ShowcaseModule: React.FC<ShowcaseModuleProps> = ({
   onPreviewPublic,
 }) => {
   const [activeTab, setActiveTab] = useState<'services' | 'products'>('services');
+  const [editingItem, setEditingItem] = useState<Partial<Service> | Partial<Product> | null>(null);
+  const [isAdding, setIsAdding] = useState(false);
 
-  const toggleServiceVitrine = (id: string) => {
-    const list = [...services];
-    const s = list.find(item => item.id === id);
-    if (s) {
-      s.featuredInVitrine = !s.featuredInVitrine;
-      StorageService.saveServices(list);
+  const handleOpenEdit = (item: Service | Product) => setEditingItem({ ...item });
+  const handleOpenNew = () => {
+    setIsAdding(true);
+    setEditingItem(activeTab === 'services' 
+      ? { name: '', category: 'Cabelos', description: '', priceBRL: 0, image: '', durationMinutes: 60, featuredInVitrine: true, active: true }
+      : { name: '', category: 'Tratamento Capilar', brand: '', salePriceBRL: 0, image: '', stockQuantity: 0, sku: '', featuredInVitrine: true }
+    );
+  };
+
+  const handleCancel = () => {
+    setEditingItem(null);
+    setIsAdding(false);
+  };
+
+  const handleDelete = (item: Service | Product) => {
+    if (confirm('Tem certeza que deseja excluir este item?')) {
+      if ('durationMinutes' in item) {
+        StorageService.deleteService(item.id);
+      } else {
+        StorageService.saveProducts(products.filter(p => p.id !== item.id));
+      }
       onRefreshData();
     }
   };
 
-  const toggleProductVitrine = (id: string) => {
-    const list = [...products];
-    const p = list.find(item => item.id === id);
-    if (p) {
-      p.featuredInVitrine = !p.featuredInVitrine;
-      StorageService.saveProducts(list);
-      onRefreshData();
+  const handleSave = () => {
+    if (!editingItem) return;
+    
+    if (isAdding) {
+      if (activeTab === 'services') StorageService.addService(editingItem as Omit<Service, 'id'>);
+      else StorageService.saveProducts([editingItem as Product, ...products]);
+    } else {
+      if ('durationMinutes' in editingItem) StorageService.updateService(editingItem.id!, editingItem as Partial<Service>);
+      else StorageService.saveProducts(products.map(p => p.id === editingItem.id ? { ...p, ...editingItem } : p));
     }
+    
+    handleCancel();
+    onRefreshData();
   };
+
+  const renderItem = (item: Service | Product) => (
+    <Card key={item.id} padding="sm" className="flex items-center justify-between gap-3 text-xs">
+      <div className="flex items-center gap-3">
+        <img src={item.image} alt={item.name} className="w-12 h-12 rounded-lg object-cover" />
+        <div>
+          <h4 className="font-semibold text-white">{item.name}</h4>
+          <div className="text-neutral-400">R$ {('priceBRL' in item ? item.priceBRL : item.salePriceBRL).toFixed(2)}</div>
+        </div>
+      </div>
+      <div className="flex gap-2">
+        <Button variant="ghost" size="sm" onClick={() => handleOpenEdit(item)} icon={<Edit2 size={14}/>}>Editar</Button>
+        <Button variant="danger" size="sm" onClick={() => handleDelete(item)} icon={<Trash2 size={14}/>}>Excluir</Button>
+      </div>
+    </Card>
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-serif font-semibold text-white">
-            Curadoria da Vitrine Pública
-          </h2>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Defina quais procedimentos e cosméticos aparecem para as visitantes na página principal.
-          </p>
+      <div className="flex justify-between items-center gap-4">
+        <h2 className="text-xl font-serif font-semibold text-white">Gerenciar Vitrine</h2>
+        <div className="flex gap-2">
+          <Button onClick={handleOpenNew} icon={<Plus size={15} />}>Novo</Button>
+          <Button onClick={onPreviewPublic} variant="secondary" icon={<Eye size={15} />}>Visualizar</Button>
         </div>
-
-        <Button onClick={onPreviewPublic} variant="secondary" icon={<Eye size={15} />}>
-          Visualizar Vitrine Pública
-        </Button>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-white/10 pb-2">
-        <button
-          onClick={() => setActiveTab('services')}
-          className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${
-            activeTab === 'services'
-              ? 'bg-[#d4af37] text-black'
-              : 'text-neutral-400 hover:text-white bg-[#14141c]'
-          }`}
-        >
-          Procedimentos em Destaque ({services.filter(s => s.featuredInVitrine).length})
-        </button>
-        <button
-          onClick={() => setActiveTab('products')}
-          className={`px-4 py-2 text-xs font-semibold uppercase tracking-wider rounded-lg transition-colors ${
-            activeTab === 'products'
-              ? 'bg-[#d4af37] text-black'
-              : 'text-neutral-400 hover:text-white bg-[#14141c]'
-          }`}
-        >
-          Boutique Home Care ({products.filter(p => p.featuredInVitrine).length})
-        </button>
+      <div className="flex gap-2 border-b border-white/10 pb-2">
+        <button onClick={() => setActiveTab('services')} className={`px-4 py-2 text-xs font-semibold uppercase rounded-lg ${activeTab === 'services' ? 'bg-[#d4af37] text-black' : 'text-neutral-400'}`}>Procedimentos</button>
+        <button onClick={() => setActiveTab('products')} className={`px-4 py-2 text-xs font-semibold uppercase rounded-lg ${activeTab === 'products' ? 'bg-[#d4af37] text-black' : 'text-neutral-400'}`}>Boutique</button>
       </div>
 
-      {/* Services List */}
-      {activeTab === 'services' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {services.map(s => (
-            <Card
-              key={s.id}
-              padding="sm"
-              borderGold={s.featuredInVitrine}
-              className="flex items-center justify-between gap-3 text-xs"
-            >
-              <div className="flex items-center gap-3">
-                <img
-                  src={s.image}
-                  alt={s.name}
-                  className="w-12 h-12 rounded-lg object-cover"
-                  referrerPolicy="no-referrer"
-                />
-                <div>
-                  <h4 className="font-semibold text-white">{s.name}</h4>
-                  <div className="text-neutral-400 text-[11px]">
-                    {s.category} · R$ {s.priceBRL.toFixed(2)}
-                  </div>
-                </div>
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {(activeTab === 'services' ? services : products).map(renderItem)}
+      </div>
 
-              <button
-                onClick={() => toggleServiceVitrine(s.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  s.featuredInVitrine
-                    ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-700/50'
-                    : 'bg-[#181822] text-neutral-400 hover:text-white'
-                }`}
-              >
-                {s.featuredInVitrine ? 'Ativo na Vitrine' : 'Oculto na Vitrine'}
-              </button>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Products List */}
-      {activeTab === 'products' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {products.map(p => (
-            <Card
-              key={p.id}
-              padding="sm"
-              borderGold={p.featuredInVitrine}
-              className="flex items-center justify-between gap-3 text-xs"
-            >
-              <div className="flex items-center gap-3">
-                <img
-                  src={p.image}
-                  alt={p.name}
-                  className="w-12 h-12 rounded-lg object-cover"
-                  referrerPolicy="no-referrer"
-                />
-                <div>
-                  <h4 className="font-semibold text-white">{p.name}</h4>
-                  <div className="text-neutral-400 text-[11px]">
-                    {p.brand} · R$ {p.salePriceBRL.toFixed(2)}
-                  </div>
-                </div>
-              </div>
-
-              <button
-                onClick={() => toggleProductVitrine(p.id)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                  p.featuredInVitrine
-                    ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-700/50'
-                    : 'bg-[#181822] text-neutral-400 hover:text-white'
-                }`}
-              >
-                {p.featuredInVitrine ? 'Ativo na Vitrine' : 'Oculto na Vitrine'}
-              </button>
-            </Card>
-          ))}
+      {editingItem && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
+          <Card className="w-full max-w-lg space-y-4">
+            <h3 className="text-lg font-semibold text-white">{isAdding ? 'Novo Item' : 'Editar Item'}</h3>
+            <input type="text" placeholder="Nome" value={editingItem.name || ''} onChange={e => setEditingItem({...editingItem, name: e.target.value})} className="w-full bg-[#181822] p-2 rounded text-white" />
+            <textarea placeholder="Descrição" value={editingItem.description || ''} onChange={e => setEditingItem({...editingItem, description: e.target.value})} className="w-full bg-[#181822] p-2 rounded text-white" />
+            <div className="flex gap-2">
+              <input type="number" placeholder="Preço" value={('priceBRL' in editingItem ? editingItem.priceBRL : editingItem.salePriceBRL) || 0} onChange={e => setEditingItem({...editingItem, [activeTab === 'services' ? 'priceBRL' : 'salePriceBRL']: parseFloat(e.target.value)})} className="w-full bg-[#181822] p-2 rounded text-white" />
+              <input type="number" placeholder="Preço Promo" value={editingItem.promotionalPriceBRL || ''} onChange={e => setEditingItem({...editingItem, promotionalPriceBRL: parseFloat(e.target.value)})} className="w-full bg-[#181822] p-2 rounded text-white" />
+            </div>
+            <input type="number" placeholder="Ordem" value={editingItem.displayOrder || 0} onChange={e => setEditingItem({...editingItem, displayOrder: parseInt(e.target.value)})} className="w-full bg-[#181822] p-2 rounded text-white" />
+            <label className="flex items-center gap-2 text-white">
+              <input type="checkbox" checked={editingItem.active} onChange={e => setEditingItem({...editingItem, active: e.target.checked})} />
+              Ativo
+            </label>
+            <div className="flex items-center gap-4">
+              <img src={editingItem.image} alt="Preview" className="w-16 h-16 rounded bg-[#181822]" />
+              <label className="cursor-pointer bg-[#181822] p-2 rounded flex items-center gap-2 text-white">
+                <Upload size={15}/> Upload Imagem
+                <input type="file" onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => setEditingItem({...editingItem, image: reader.result as string});
+                    reader.readAsDataURL(file);
+                  }
+                }} className="hidden" />
+              </label>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="secondary" onClick={handleCancel}>Cancelar</Button>
+              <Button onClick={handleSave} icon={<Save size={15} />}>Salvar</Button>
+            </div>
+          </Card>
         </div>
       )}
     </div>

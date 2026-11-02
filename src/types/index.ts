@@ -60,11 +60,13 @@ export interface Service {
   category: 'Cabelos' | 'Unhas' | 'Estética' | 'Noivas' | 'Sobrancelhas & Cílios';
   durationMinutes: number;
   priceBRL: number;
+  promotionalPriceBRL?: number;
   description: string;
   image: string;
   popular?: boolean;
   featuredInVitrine?: boolean;
   active: boolean;
+  displayOrder: number;
 }
 
 export interface Product {
@@ -74,11 +76,14 @@ export interface Product {
   brand: string;
   costPriceBRL: number;
   salePriceBRL: number;
+  promotionalPriceBRL?: number;
   stockQuantity: number;
   minStockAlert: number;
   image: string;
   sku: string;
   featuredInVitrine?: boolean;
+  active: boolean;
+  displayOrder: number;
 }
 
 export type AppointmentStatus = 
