@@ -47,7 +47,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
 
   const slides = [
     {
-      image: '/src/assets/images/hero_salon_luxury_interior_1793577409043.jpg',
+      image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1600&q=80',
       tag: 'Atelier de Alta Beleza & Gestão',
       title: 'A Arte da Transformação com Precisão e Luxo',
       description: 'Um espaço de refúgio e sofisticação nos Jardins. Vivencie tratamentos capilares, estética de vanguarda e spa de unhas com produtos internacionais.',
@@ -55,7 +55,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
       category: 'Cabelos',
     },
     {
-      image: '/src/assets/images/service_luxury_haircare_1793577408044.jpg',
+      image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1600&q=80',
       tag: 'Técnica Autoral de Mechas',
       title: 'Balayage Dourada & Morena Iluminada',
       description: 'Clareamento saudável com esfumado sem marcas e infusão de peptídeos. Luminosidade sob medida para harmonizar com o seu tom de pele.',
@@ -63,7 +63,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
       category: 'Cabelos',
     },
     {
-      image: '/src/assets/images/service_nail_art_champagne_1793577410058.jpg',
+      image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=1600&q=80',
       tag: 'Nail Couture & Spa',
       title: 'Spa de Unhas Champagne & Cutilagem Russa',
       description: 'Tratamentos minuciosos com esmaltação duradoura, folhas de ouro sutis e hidratação profunda à base de cristais de quartzo.',
@@ -71,7 +71,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
       category: 'Unhas',
     },
     {
-      image: '/src/assets/images/service_aesthetic_facial_1793577409868.jpg',
+      image: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=1600&q=80',
       tag: 'Estética Avançada',
       title: 'Revitalização Facial Peptídeos Dourados',
       description: 'Procedimentos não-invasivos de estímulo de colágeno, drenagem facial relaxante e máscara tensora para viço imediato e duradouro.',
@@ -100,7 +100,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
     <div className="min-h-screen bg-[#08080a] text-neutral-100 flex flex-col">
       {/* 1. HERO CAROUSEL BANNER */}
       <section 
-        className="relative w-full h-[540px] sm:h-[620px] lg:h-[700px] overflow-hidden bg-black"
+        className="relative w-full h-[540px] sm:h-[620px] lg:h-[700px] overflow-hidden bg-[#08080a]"
         onMouseEnter={() => setIsAutoPlaying(false)}
         onMouseLeave={() => setIsAutoPlaying(true)}
       >
@@ -112,7 +112,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
           <div
             key={idx}
             className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-              idx === currentSlide ? 'opacity-100 z-1' : 'opacity-0 z-0 pointer-events-none'
+              idx === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
             }`}
           >
             {/* Background Image with Measured Scrim for WCAG AA readability */}
@@ -121,9 +121,12 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
               alt={slide.title}
               className="w-full h-full object-cover object-center scale-105 transition-transform duration-10000"
               referrerPolicy="no-referrer"
+              onError={(e) => {
+                e.currentTarget.src = 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1600&q=80';
+              }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#08080a] via-[#08080a]/65 to-[#08080a]/40" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#08080a]/90 via-[#08080a]/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#08080a] via-[#08080a]/70 to-[#08080a]/40" />
+            <div className="absolute inset-0 bg-gradient-to-r from-[#08080a]/90 via-[#08080a]/50 to-transparent" />
 
             {/* Slide Content */}
             <div className="relative max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex flex-col justify-center items-start z-10">
@@ -431,10 +434,13 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
             {/* Showcase Image */}
             <div className="relative rounded-2xl overflow-hidden border border-[#d4af37]/30 shadow-2xl">
               <img
-                src="/src/assets/images/hero_salon_luxury_interior_1793577409043.jpg"
+                src="https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1200&q=80"
                 alt="Interior Atelier Sra. Bela Mulher"
                 className="w-full h-[420px] object-cover"
                 referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.currentTarget.src = 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1200&q=80';
+                }}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-6">
                 <div className="text-xs text-neutral-300">

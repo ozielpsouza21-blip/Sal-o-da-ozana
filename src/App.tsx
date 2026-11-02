@@ -136,8 +136,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#08080a] text-neutral-100 flex flex-col font-sans selection:bg-[#d4af37]/30 selection:text-[#f3e5ab]">
-      {/* Top Global Environment Selector Bar */}
-      <div className="bg-[#0b0b0f] border-b border-[#d4af37]/30 px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between text-xs gap-2 z-50">
+      {/* Top Global Environment Selector Bar - Desktop Only */}
+      <div className="hidden lg:flex bg-[#0b0b0f] border-b border-[#d4af37]/30 px-6 py-2 items-center justify-between text-xs gap-2 z-50">
         <div className="flex items-center gap-2 font-serif text-[#f3e5ab] font-semibold">
           <Sparkles size={14} className="text-[#d4af37]" />
           <span className="tracking-wide">Sra. Bela Mulher Atelier</span>
