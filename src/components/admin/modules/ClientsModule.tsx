@@ -11,12 +11,15 @@ import {
   Eye,
   Edit2,
   FileText,
+  Camera,
 } from 'lucide-react';
 import { ClientProfile, VipTier, Appointment } from '../../../types';
 import { Card } from '../../common/Card';
 import { Button } from '../../common/Button';
 import { Modal } from '../../common/Modal';
 import { StorageService } from '../../../services/storage';
+import { SupabaseDataService } from '../../../services/supabaseDataService';
+import { processImageFile } from '../../../utils/imageUpload';
 
 interface ClientsModuleProps {
   clients: ClientProfile[];
@@ -42,6 +45,10 @@ export const ClientsModule: React.FC<ClientsModuleProps> = ({
   const [newPreferences, setNewPreferences] = useState('');
   const [newFormula, setNewFormula] = useState('');
 
+  const [newAvatarUrl, setNewAvatarUrl] = useState('');
+  const [isUploadingNewAvatar, setIsUploadingNewAvatar] = useState(false);
+  const [uploadingClientId, setUploadingClientId] = useState<string | null>(null);
+
   const filteredClients = clients.filter(c => {
     const matchesSearch =
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -51,15 +58,47 @@ export const ClientsModule: React.FC<ClientsModuleProps> = ({
     return matchesSearch && matchesTier;
   });
 
-  const handleCreateClient = (e: React.FormEvent) => {
+  const handleNewClientPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingNewAvatar(true);
+    try {
+      const dataUrl = await processImageFile(file, 600, 600, 0.88);
+      setNewAvatarUrl(dataUrl);
+    } catch (err: any) {
+      alert(err?.message || 'Erro ao carregar a foto do dispositivo.');
+    } finally {
+      setIsUploadingNewAvatar(false);
+    }
+  };
+
+  const handleUpdateClientPhoto = async (clientId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingClientId(clientId);
+    try {
+      const dataUrl = await processImageFile(file, 600, 600, 0.88);
+      await SupabaseDataService.updateClient(clientId, { avatarUrl: dataUrl });
+      if (selectedClientDetail && selectedClientDetail.id === clientId) {
+        setSelectedClientDetail({ ...selectedClientDetail, avatarUrl: dataUrl });
+      }
+      onRefreshData();
+    } catch (err: any) {
+      alert(err?.message || 'Erro ao carregar a foto.');
+    } finally {
+      setUploadingClientId(null);
+    }
+  };
+
+  const handleCreateClient = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim() || !newPhone.trim()) return;
 
-    StorageService.addClient({
+    await SupabaseDataService.createClient({
       name: newName.trim(),
       email: newEmail.trim() || 'cliente@srabélamulher.com.br',
       phone: newPhone.trim(),
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+      avatarUrl: newAvatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
       vipTier: newTier,
       vipPoints: newTier === 'Diamante' ? 5000 : newTier === 'Ouro' ? 2500 : 1000,
       formulaNote: newFormula.trim() || undefined,
@@ -74,6 +113,7 @@ export const ClientsModule: React.FC<ClientsModuleProps> = ({
     setNewPhone('');
     setNewFormula('');
     setNewPreferences('');
+    setNewAvatarUrl('');
   };
 
   const getVipBadgeColor = (tier: VipTier) => {
@@ -149,13 +189,28 @@ export const ClientsModule: React.FC<ClientsModuleProps> = ({
             <div>
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl overflow-hidden border border-[#d4af37]/40 shrink-0">
-                    <img
-                      src={client.avatarUrl}
-                      alt={client.name}
-                      className="w-full h-full object-cover"
-                      referrerPolicy="no-referrer"
-                    />
+                  <div className="relative shrink-0">
+                    <div className="w-12 h-12 rounded-xl overflow-hidden border border-[#d4af37]/40">
+                      <img
+                        src={client.avatarUrl}
+                        alt={client.name}
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                    </div>
+                    <label
+                      className="absolute -bottom-1 -right-1 bg-[#d4af37] text-black p-1 rounded-full cursor-pointer hover:bg-[#f3e5ab] transition-colors shadow-md border border-black flex items-center justify-center"
+                      title="Alterar foto da cliente pelo celular"
+                    >
+                      <Camera size={11} />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={e => handleUpdateClientPhoto(client.id, e)}
+                        className="hidden"
+                        disabled={uploadingClientId === client.id}
+                      />
+                    </label>
                   </div>
                   <div>
                     <h4 className="text-sm font-semibold text-white">{client.name}</h4>
@@ -217,6 +272,54 @@ export const ClientsModule: React.FC<ClientsModuleProps> = ({
           }
         >
           <div className="space-y-4 text-xs">
+            {/* Top Avatar with direct mobile upload button */}
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 p-3.5 bg-[#14141c] rounded-xl border border-white/10">
+              <div className="relative shrink-0">
+                <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-[#d4af37]/70 shadow-lg">
+                  <img
+                    src={selectedClientDetail.avatarUrl}
+                    alt={selectedClientDetail.name}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <label
+                  className="absolute -bottom-1.5 -right-1.5 bg-[#d4af37] text-black p-1.5 rounded-full cursor-pointer hover:bg-[#f3e5ab] transition-all shadow-md border border-black flex items-center justify-center"
+                  title="Tirar foto ou carregar da galeria"
+                >
+                  <Camera size={13} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => handleUpdateClientPhoto(selectedClientDetail.id, e)}
+                    className="hidden"
+                    disabled={uploadingClientId === selectedClientDetail.id}
+                  />
+                </label>
+              </div>
+
+              <div className="flex-1 text-center sm:text-left space-y-1">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <h3 className="text-base font-serif font-bold text-white">{selectedClientDetail.name}</h3>
+                  <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1f1d15] hover:bg-[#2a271a] text-[#f3e5ab] border border-[#d4af37]/40 rounded-lg text-xs font-medium cursor-pointer transition-colors shadow-sm self-center sm:self-auto">
+                    <Camera size={13} className="text-[#d4af37]" />
+                    <span>{uploadingClientId === selectedClientDetail.id ? 'Atualizando foto...' : 'Alterar Foto (Celular/PC)'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={e => handleUpdateClientPhoto(selectedClientDetail.id, e)}
+                      className="hidden"
+                      disabled={uploadingClientId === selectedClientDetail.id}
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-neutral-400">{selectedClientDetail.phone} · {selectedClientDetail.email}</p>
+                <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-gradient-to-r ${getVipBadgeColor(selectedClientDetail.vipTier)}`}>
+                  VIP {selectedClientDetail.vipTier} · {selectedClientDetail.vipPoints} pts
+                </span>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3 p-3 bg-[#161622] rounded-xl border border-white/10">
               <div>
                 <span className="text-neutral-500 block text-[10px]">Telefone</span>
@@ -274,6 +377,32 @@ export const ClientsModule: React.FC<ClientsModuleProps> = ({
           }
         >
           <form onSubmit={handleCreateClient} className="space-y-4 text-xs">
+            {/* Foto de Perfil da Cliente com upload direto do celular */}
+            <div className="flex items-center gap-4 p-3 bg-[#161622] rounded-xl border border-white/10">
+              <div className="w-16 h-16 rounded-xl overflow-hidden border border-[#d4af37]/50 bg-black/40 flex items-center justify-center shrink-0">
+                {newAvatarUrl ? (
+                  <img src={newAvatarUrl} alt="Foto da cliente" className="w-full h-full object-cover" />
+                ) : (
+                  <Users size={28} className="text-neutral-500" />
+                )}
+              </div>
+              <div className="flex-1">
+                <span className="text-xs font-medium text-white block">Foto de Perfil da Cliente</span>
+                <p className="text-[11px] text-neutral-400 mb-2">Tire foto com a câmera do celular ou escolha da galeria</p>
+                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1f1d15] hover:bg-[#2a271a] text-[#f3e5ab] border border-[#d4af37]/40 rounded-lg text-xs font-medium cursor-pointer transition-colors shadow-sm">
+                  <Camera size={13} className="text-[#d4af37]" />
+                  <span>{isUploadingNewAvatar ? 'Processando foto...' : newAvatarUrl ? 'Trocar Foto Selecionada' : 'Tirar Foto ou Escolher Arquivo'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleNewClientPhotoUpload}
+                    className="hidden"
+                    disabled={isUploadingNewAvatar}
+                  />
+                </label>
+              </div>
+            </div>
+
             <div>
               <label className="text-xs font-medium text-neutral-300 block mb-1">
                 Nome Completo *

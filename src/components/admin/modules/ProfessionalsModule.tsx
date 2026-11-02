@@ -8,12 +8,16 @@ import {
   DollarSign,
   CheckCircle,
   XCircle,
+  Camera,
+  User,
 } from 'lucide-react';
 import { Professional } from '../../../types';
 import { Card } from '../../common/Card';
 import { Button } from '../../common/Button';
 import { Modal } from '../../common/Modal';
 import { StorageService } from '../../../services/storage';
+import { SupabaseDataService } from '../../../services/supabaseDataService';
+import { processImageFile } from '../../../utils/imageUpload';
 
 interface ProfessionalsModuleProps {
   professionals: Professional[];
@@ -32,15 +36,47 @@ export const ProfessionalsModule: React.FC<ProfessionalsModuleProps> = ({
   const [email, setEmail] = useState('');
   const [specialtiesStr, setSpecialtiesStr] = useState('');
   const [bio, setBio] = useState('');
+  const [newAvatarUrl, setNewAvatarUrl] = useState('');
+  const [isUploadingNewAvatar, setIsUploadingNewAvatar] = useState(false);
+  const [uploadingProId, setUploadingProId] = useState<string | null>(null);
 
-  const handleCreatePro = (e: React.FormEvent) => {
+  const handleNewProPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingNewAvatar(true);
+    try {
+      const dataUrl = await processImageFile(file, 600, 600, 0.88);
+      setNewAvatarUrl(dataUrl);
+    } catch (err: any) {
+      alert(err?.message || 'Erro ao carregar a foto do dispositivo.');
+    } finally {
+      setIsUploadingNewAvatar(false);
+    }
+  };
+
+  const handleUpdateProPhoto = async (proId: string, e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingProId(proId);
+    try {
+      const dataUrl = await processImageFile(file, 600, 600, 0.88);
+      await SupabaseDataService.updateProfessional(proId, { avatarUrl: dataUrl });
+      onRefreshData();
+    } catch (err: any) {
+      alert(err?.message || 'Erro ao carregar a foto.');
+    } finally {
+      setUploadingProId(null);
+    }
+  };
+
+  const handleCreatePro = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !roleTitle.trim()) return;
 
-    StorageService.addProfessional({
+    await SupabaseDataService.createProfessional({
       name: name.trim(),
       roleTitle: roleTitle.trim(),
-      avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
+      avatarUrl: newAvatarUrl || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
       bio: bio.trim() || 'Especialista visagista dedicada ao padrão de excelência Sra. Bela Mulher.',
       rating: 5.0,
       reviewsCount: 1,
@@ -59,6 +95,9 @@ export const ProfessionalsModule: React.FC<ProfessionalsModuleProps> = ({
     setRoleTitle('');
     setBio('');
     setSpecialtiesStr('');
+    setPhone('');
+    setEmail('');
+    setNewAvatarUrl('');
   };
 
   return (
@@ -82,13 +121,28 @@ export const ProfessionalsModule: React.FC<ProfessionalsModuleProps> = ({
         {professionals.map(pro => (
           <Card key={pro.id} padding="md" className="flex flex-col justify-between space-y-4 border border-white/10">
             <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-xl overflow-hidden border border-[#d4af37]/40 shrink-0">
-                <img
-                  src={pro.avatarUrl}
-                  alt={pro.name}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                />
+              <div className="relative shrink-0">
+                <div className="w-16 h-16 rounded-xl overflow-hidden border border-[#d4af37]/40 shadow-md">
+                  <img
+                    src={pro.avatarUrl}
+                    alt={pro.name}
+                    className="w-full h-full object-cover"
+                    referrerPolicy="no-referrer"
+                  />
+                </div>
+                <label
+                  className="absolute -bottom-1.5 -right-1.5 bg-[#d4af37] text-black p-1.5 rounded-full cursor-pointer hover:bg-[#f3e5ab] transition-all shadow-md border border-black flex items-center justify-center"
+                  title="Alterar foto pelo celular"
+                >
+                  <Camera size={12} />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => handleUpdateProPhoto(pro.id, e)}
+                    className="hidden"
+                    disabled={uploadingProId === pro.id}
+                  />
+                </label>
               </div>
 
               <div className="space-y-1 min-w-0">
@@ -144,6 +198,32 @@ export const ProfessionalsModule: React.FC<ProfessionalsModuleProps> = ({
           }
         >
           <form onSubmit={handleCreatePro} className="space-y-4 text-xs">
+            {/* Foto de Perfil com upload do celular */}
+            <div className="flex items-center gap-4 p-3 bg-[#161622] rounded-xl border border-white/10">
+              <div className="w-16 h-16 rounded-xl overflow-hidden border border-[#d4af37]/50 bg-black/40 flex items-center justify-center shrink-0">
+                {newAvatarUrl ? (
+                  <img src={newAvatarUrl} alt="Foto do especialista" className="w-full h-full object-cover" />
+                ) : (
+                  <User size={28} className="text-neutral-500" />
+                )}
+              </div>
+              <div className="flex-1">
+                <span className="text-xs font-medium text-white block">Foto do Especialista</span>
+                <p className="text-[11px] text-neutral-400 mb-2">Tire foto com o celular ou envie da galeria</p>
+                <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1f1d15] hover:bg-[#2a271a] text-[#f3e5ab] border border-[#d4af37]/40 rounded-lg text-xs font-medium cursor-pointer transition-colors shadow-sm">
+                  <Camera size={13} className="text-[#d4af37]" />
+                  <span>{isUploadingNewAvatar ? 'Processando foto...' : newAvatarUrl ? 'Trocar Foto Selecionada' : 'Tirar Foto ou Escolher Arquivo'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleNewProPhotoUpload}
+                    className="hidden"
+                    disabled={isUploadingNewAvatar}
+                  />
+                </label>
+              </div>
+            </div>
+
             <div>
               <label className="text-xs font-medium text-neutral-300 block mb-1">
                 Nome Completo *

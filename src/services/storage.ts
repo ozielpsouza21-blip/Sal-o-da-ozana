@@ -10,6 +10,10 @@ import {
   Professional,
   Service,
   ThemeConfig,
+  BillRecord,
+  CashClosingRecord,
+  PixConfig,
+  PaymentProofRecord,
 } from '../types';
 import {
   INITIAL_APPOINTMENTS,
@@ -22,6 +26,10 @@ import {
   INITIAL_SERVICES,
   INITIAL_THEME,
   INITIAL_TRANSACTIONS,
+  INITIAL_BILLS,
+  INITIAL_CASH_CLOSINGS,
+  INITIAL_PIX_CONFIG,
+  INITIAL_PAYMENT_PROOFS,
 } from '../data/initialData';
 
 const STORAGE_KEYS = {
@@ -35,6 +43,10 @@ const STORAGE_KEYS = {
   THEME: 'sbm_theme_v1',
   CONVERSATIONS: 'sbm_conversations_v1',
   MESSAGES: 'sbm_messages_v1',
+  BILLS: 'sbm_bills_v1',
+  CASH_CLOSINGS: 'sbm_cash_closings_v1',
+  PIX_CONFIG: 'sbm_pix_config_v1',
+  PAYMENT_PROOFS: 'sbm_payment_proofs_v1',
 };
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -92,6 +104,14 @@ export const StorageService = {
     const updated = [...current, newPro];
     StorageService.saveProfessionals(updated);
     return newPro;
+  },
+  updateProfessional: (id: string, updates: Partial<Professional>): Professional | null => {
+    const current = StorageService.getProfessionals();
+    const index = current.findIndex(p => p.id === id);
+    if (index === -1) return null;
+    current[index] = { ...current[index], ...updates };
+    StorageService.saveProfessionals(current);
+    return current[index];
   },
 
   // Clients
@@ -159,6 +179,13 @@ export const StorageService = {
       // Se for concluído, registra no extrato de caixa se estiver aberto
       if (status === 'concluido') {
         const apt = current[index];
+        const method =
+          apt.paymentMethod === 'cartao_credito' ||
+          apt.paymentMethod === 'cartao_debito' ||
+          apt.paymentMethod === 'dinheiro'
+            ? apt.paymentMethod
+            : 'pix';
+
         StorageService.addCashTransaction({
           type: 'entrada',
           category: 'Serviço Concluído',
@@ -166,9 +193,18 @@ export const StorageService = {
           amountBRL: apt.priceBRL,
           operatorName: apt.professionalName,
           appointmentId: apt.id,
+          paymentMethod: method,
         });
       }
     }
+  },
+  updateAppointment: (id: string, updates: Partial<Appointment>): Appointment | null => {
+    const current = StorageService.getAppointments();
+    const index = current.findIndex(a => a.id === id);
+    if (index === -1) return null;
+    current[index] = { ...current[index], ...updates };
+    StorageService.saveAppointments(current);
+    return current[index];
   },
 
   // Cash Register
@@ -190,11 +226,24 @@ export const StorageService = {
 
     // Atualiza status do caixa
     const status = StorageService.getCashStatus();
+    // PIX e Cartões não alteram o gaveteiro físico de dinheiro em espécie
+    const isCashInflow =
+      trx.type === 'suprimento' ||
+      trx.type === 'abertura' ||
+      (trx.type === 'entrada' && (trx.paymentMethod === 'dinheiro' || !trx.paymentMethod));
+    const isCashOutflow =
+      trx.type === 'sangria' ||
+      (trx.type === 'saida' && (trx.paymentMethod === 'dinheiro' || !trx.paymentMethod));
+
     if (trx.type === 'entrada' || trx.type === 'suprimento') {
-      status.currentBalanceBRL += trx.amountBRL;
+      if (isCashInflow) {
+        status.currentBalanceBRL += trx.amountBRL;
+      }
       status.totalEntradas += trx.amountBRL;
     } else if (trx.type === 'saida' || trx.type === 'sangria') {
-      status.currentBalanceBRL = Math.max(0, status.currentBalanceBRL - trx.amountBRL);
+      if (isCashOutflow) {
+        status.currentBalanceBRL = Math.max(0, status.currentBalanceBRL - trx.amountBRL);
+      }
       status.totalSaidas += trx.amountBRL;
     }
     StorageService.saveCashStatus(status);
@@ -221,17 +270,100 @@ export const StorageService = {
       operatorName,
     });
   },
-  closeCashRegister: (operatorName: string) => {
+  closeCashRegister: (
+    operatorName: string,
+    closingData?: {
+      countedCashBRL: number;
+      countedCardBRL: number;
+      countedPixBRL: number;
+      differenceReason?: string;
+      notes?: string;
+    }
+  ): CashClosingRecord => {
     const status = StorageService.getCashStatus();
     status.isOpen = false;
     StorageService.saveCashStatus(status);
+
+    const now = new Date();
+    const timestampStr = `${now.toISOString().split('T')[0]} ${now.toTimeString().slice(0, 8)}`;
+
+    const countedCash = closingData?.countedCashBRL ?? status.currentBalanceBRL;
+    const countedCard = closingData?.countedCardBRL ?? 0;
+    const countedPix = closingData?.countedPixBRL ?? 0;
+    const totalCounted = countedCash + countedCard + countedPix;
+    const difference = countedCash - status.currentBalanceBRL;
+
+    const closingRecord: CashClosingRecord = {
+      id: `closing-${Date.now()}`,
+      closedAt: timestampStr,
+      operatorName,
+      initialBalanceBRL: status.initialBalanceBRL,
+      totalEntradas: status.totalEntradas,
+      totalSaidas: status.totalSaidas,
+      expectedBalanceBRL: status.currentBalanceBRL,
+      countedCashBRL: countedCash,
+      countedCardBRL: countedCard,
+      countedPixBRL: countedPix,
+      totalCountedBRL: totalCounted,
+      differenceBRL: difference,
+      differenceReason: closingData?.differenceReason,
+      notes: closingData?.notes || `Encerramento de turno executado por ${operatorName}`,
+    };
+
+    StorageService.addCashClosing(closingRecord);
+
     StorageService.addCashTransaction({
       type: 'fechamento',
       category: 'Fechamento de Caixa',
-      description: `Encerramento do turno com saldo final de R$ ${status.currentBalanceBRL.toFixed(2)}`,
+      description: `Encerramento do turno com saldo apurado de R$ ${status.currentBalanceBRL.toFixed(2)}${
+        Math.abs(difference) > 0.01 ? ` (Divergência: R$ ${difference.toFixed(2)})` : ' (Conferência exata)'
+      }`,
       amountBRL: status.currentBalanceBRL,
       operatorName,
     });
+
+    return closingRecord;
+  },
+
+  // Contas a Pagar & Receber (Gestão Financeira)
+  getBills: (): BillRecord[] => safeGet(STORAGE_KEYS.BILLS, INITIAL_BILLS),
+  saveBills: (bills: BillRecord[]) => safeSet(STORAGE_KEYS.BILLS, bills),
+  addBill: (bill: Omit<BillRecord, 'id' | 'createdAt'>): BillRecord => {
+    const current = StorageService.getBills();
+    const newBill: BillRecord = {
+      ...bill,
+      id: `bill-${Date.now()}`,
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+    StorageService.saveBills([newBill, ...current]);
+    return newBill;
+  },
+  updateBill: (id: string, updates: Partial<BillRecord>): BillRecord | null => {
+    const current = StorageService.getBills();
+    const idx = current.findIndex(b => b.id === id);
+    if (idx === -1) return null;
+    current[idx] = { ...current[idx], ...updates };
+    StorageService.saveBills(current);
+    return current[idx];
+  },
+  deleteBill: (id: string): boolean => {
+    const current = StorageService.getBills();
+    const updated = current.filter(b => b.id !== id);
+    StorageService.saveBills(updated);
+    return true;
+  },
+
+  // Histórico de Fechamentos de Caixa
+  getCashClosings: (): CashClosingRecord[] => safeGet(STORAGE_KEYS.CASH_CLOSINGS, INITIAL_CASH_CLOSINGS),
+  saveCashClosings: (list: CashClosingRecord[]) => safeSet(STORAGE_KEYS.CASH_CLOSINGS, list),
+  addCashClosing: (closing: Omit<CashClosingRecord, 'id'>): CashClosingRecord => {
+    const current = StorageService.getCashClosings();
+    const newRecord: CashClosingRecord = {
+      ...closing,
+      id: (closing as any).id || `closing-${Date.now()}`,
+    };
+    StorageService.saveCashClosings([newRecord, ...current]);
+    return newRecord;
   },
 
   // Conversations & Chat
@@ -281,6 +413,107 @@ export const StorageService = {
     root.style.setProperty('--accent-gold-light', theme.accentLight);
     root.style.setProperty('--accent-gold-subtle', theme.accentSubtle);
     root.style.setProperty('--accent-gold-border', theme.accentBorder);
+  },
+
+  // PIX Configuration
+  getPixConfig: (): PixConfig => safeGet(STORAGE_KEYS.PIX_CONFIG, INITIAL_PIX_CONFIG),
+  savePixConfig: (config: PixConfig): void => safeSet(STORAGE_KEYS.PIX_CONFIG, config),
+  updatePixConfig: (updates: Partial<PixConfig>): PixConfig => {
+    const current = StorageService.getPixConfig();
+    const updated: PixConfig = {
+      ...current,
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    StorageService.savePixConfig(updated);
+    return updated;
+  },
+
+  // Payment Proofs & Receipts
+  getPaymentProofs: (): PaymentProofRecord[] => safeGet(STORAGE_KEYS.PAYMENT_PROOFS, INITIAL_PAYMENT_PROOFS),
+  savePaymentProofs: (proofs: PaymentProofRecord[]): void => safeSet(STORAGE_KEYS.PAYMENT_PROOFS, proofs),
+  addPaymentProof: (proof: Omit<PaymentProofRecord, 'id' | 'status' | 'submittedAt'>): PaymentProofRecord => {
+    const current = StorageService.getPaymentProofs();
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('pt-BR');
+    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    const newProof: PaymentProofRecord = {
+      ...proof,
+      id: `proof-${Date.now()}`,
+      status: 'aguardando_confirmacao',
+      submittedAt: `${dateStr} ${timeStr}`,
+    };
+    const updated = [newProof, ...current];
+    StorageService.savePaymentProofs(updated);
+
+    // Also update associated appointment status if present
+    if (proof.appointmentId) {
+      StorageService.updateAppointment(proof.appointmentId, {
+        paymentStatus: 'aguardando_confirmacao',
+        paymentMethod: 'pix',
+        paymentProofUrl: proof.proofImageUrl,
+      });
+    }
+
+    return newProof;
+  },
+  confirmPaymentProof: (proofId: string, confirmedBy = 'Administrador'): PaymentProofRecord | null => {
+    const current = StorageService.getPaymentProofs();
+    const index = current.findIndex(p => p.id === proofId);
+    if (index === -1) return null;
+
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('pt-BR');
+    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+    current[index] = {
+      ...current[index],
+      status: 'confirmado',
+      confirmedAt: `${dateStr} ${timeStr}`,
+      confirmedBy,
+    };
+    StorageService.savePaymentProofs(current);
+
+    const proof = current[index];
+    if (proof.appointmentId) {
+      StorageService.updateAppointment(proof.appointmentId, {
+        paymentStatus: 'pago',
+        paymentMethod: 'pix',
+      });
+    }
+
+    // Add entry to cash register / transactions as PIX revenue
+    StorageService.addCashTransaction({
+      type: 'entrada',
+      category: 'Recebimento PIX',
+      description: `PIX confirmado: ${proof.description} - ${proof.clientName}`,
+      amountBRL: proof.amountBRL,
+      operatorName: confirmedBy,
+      appointmentId: proof.appointmentId,
+      paymentMethod: 'pix',
+    });
+
+    return current[index];
+  },
+  rejectPaymentProof: (proofId: string, notes?: string): PaymentProofRecord | null => {
+    const current = StorageService.getPaymentProofs();
+    const index = current.findIndex(p => p.id === proofId);
+    if (index === -1) return null;
+
+    current[index] = {
+      ...current[index],
+      status: 'rejeitado',
+      adminNotes: notes || 'Comprovante não localizado ou com dados divergentes.',
+    };
+    StorageService.savePaymentProofs(current);
+
+    if (current[index].appointmentId) {
+      StorageService.updateAppointment(current[index].appointmentId!, {
+        paymentStatus: 'pendente',
+      });
+    }
+
+    return current[index];
   },
 
   // Reset to initial (for testing)

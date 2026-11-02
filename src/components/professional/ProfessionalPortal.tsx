@@ -16,12 +16,15 @@ import {
   Shield,
   Send,
   LogOut,
+  Camera,
 } from 'lucide-react';
 import { Appointment, Professional, ProfessionalTab } from '../../types';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
 import { Modal } from '../common/Modal';
 import { StorageService } from '../../services/storage';
+import { SupabaseDataService } from '../../services/supabaseDataService';
+import { processImageFile } from '../../utils/imageUpload';
 
 interface ProfessionalPortalProps {
   currentPro: Professional;
@@ -43,6 +46,22 @@ export const ProfessionalPortal: React.FC<ProfessionalPortalProps> = ({
   const [activeTab, setActiveTab] = useState<ProfessionalTab>('agenda');
   const [selectedAptForNotes, setSelectedAptForNotes] = useState<Appointment | null>(null);
   const [formulaInput, setFormulaInput] = useState<string>('');
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingPhoto(true);
+    try {
+      const dataUrl = await processImageFile(file, 600, 600, 0.88);
+      await SupabaseDataService.updateProfessional(currentPro.id, { avatarUrl: dataUrl });
+      onRefreshData();
+    } catch (err: any) {
+      alert(err?.message || 'Erro ao carregar a foto do dispositivo.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   // Internal chat state
   const [internalChatText, setInternalChatText] = useState('');
@@ -108,13 +127,28 @@ export const ProfessionalPortal: React.FC<ProfessionalPortalProps> = ({
       <div className="bg-[#0e0e13] border-b border-white/[0.08] px-4 sm:px-6 lg:px-8 py-4">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-3 w-full sm:w-auto">
-            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#d4af37]/50 shadow-md shrink-0">
-              <img
-                src={currentPro.avatarUrl}
-                alt={currentPro.name}
-                className="w-full h-full object-cover"
-                referrerPolicy="no-referrer"
-              />
+            <div className="relative shrink-0">
+              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-[#d4af37]/50 shadow-md">
+                <img
+                  src={currentPro.avatarUrl}
+                  alt={currentPro.name}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                />
+              </div>
+              <label
+                className="absolute -bottom-1 -right-1 bg-[#d4af37] text-black p-1 rounded-full cursor-pointer hover:bg-[#f3e5ab] transition-colors shadow-lg border border-black flex items-center justify-center"
+                title="Tirar foto ou escolher da galeria do celular"
+              >
+                <Camera size={12} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                  disabled={isUploadingPhoto}
+                />
+              </label>
             </div>
             <div>
               <div className="flex items-center gap-2">
@@ -434,17 +468,45 @@ export const ProfessionalPortal: React.FC<ProfessionalPortalProps> = ({
         {activeTab === 'perfil' && (
           <div className="max-w-2xl mx-auto space-y-6">
             <Card padding="lg" borderGold className="space-y-4">
-              <div className="flex items-center gap-4">
-                <img
-                  src={currentPro.avatarUrl}
-                  alt={currentPro.name}
-                  className="w-20 h-20 rounded-2xl object-cover border-2 border-[#d4af37]"
-                  referrerPolicy="no-referrer"
-                />
-                <div>
-                  <h3 className="text-xl font-serif font-bold text-white">{currentPro.name}</h3>
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                <div className="relative shrink-0">
+                  <img
+                    src={currentPro.avatarUrl}
+                    alt={currentPro.name}
+                    className="w-24 h-24 rounded-2xl object-cover border-2 border-[#d4af37] shadow-xl"
+                    referrerPolicy="no-referrer"
+                  />
+                  <label
+                    className="absolute -bottom-2 -right-2 bg-gradient-to-r from-[#d4af37] to-[#f3e5ab] text-black p-2 rounded-full cursor-pointer hover:scale-105 transition-all shadow-lg border border-[#0b0b0e] flex items-center justify-center"
+                    title="Tirar foto ou escolher da galeria"
+                  >
+                    <Camera size={14} />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                      disabled={isUploadingPhoto}
+                    />
+                  </label>
+                </div>
+                <div className="flex-1 text-center sm:text-left">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <h3 className="text-xl font-serif font-bold text-white">{currentPro.name}</h3>
+                    <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1f1d15] hover:bg-[#2a271a] text-[#f3e5ab] border border-[#d4af37]/40 rounded-lg text-xs font-medium cursor-pointer transition-colors shadow-sm self-center sm:self-auto">
+                      <Camera size={13} className="text-[#d4af37]" />
+                      <span>{isUploadingPhoto ? 'Enviando foto...' : 'Alterar Foto (Celular/PC)'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarUpload}
+                        className="hidden"
+                        disabled={isUploadingPhoto}
+                      />
+                    </label>
+                  </div>
                   <p className="text-xs text-[#d4af37] font-medium">{currentPro.roleTitle}</p>
-                  <div className="flex items-center gap-1 text-xs text-amber-300 mt-1">
+                  <div className="flex items-center justify-center sm:justify-start gap-1 text-xs text-amber-300 mt-1">
                     <Star size={13} fill="currentColor" />
                     <span className="font-bold">{currentPro.rating.toFixed(2)}</span>
                     <span className="text-neutral-400">({currentPro.reviewsCount} avaliações 5 estrelas)</span>

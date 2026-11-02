@@ -25,6 +25,15 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="sticky top-0 z-40 w-full bg-[#08080a]/95 backdrop-blur-md border-b border-white/[0.08]">
+      {/* Top Tagline Strip (Reorganizada da área do banner para o topo junto ao cabeçalho) */}
+      <div className="bg-gradient-to-r from-[#08080a] via-[#14141c] to-[#08080a] border-b border-[#d4af37]/20 py-1.5 px-4 text-center">
+        <p className="text-[11px] sm:text-xs text-[#f3e5ab] font-serif tracking-wider flex items-center justify-center gap-2">
+          <Sparkles size={12} className="text-[#d4af37]" />
+          <span>A Arte da Transformação com Precisão e Luxo · Jardins, São Paulo</span>
+          <Sparkles size={12} className="text-[#d4af37]" />
+        </p>
+      </div>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
         
         {/* Zone 1: Logo & Wordmark */}

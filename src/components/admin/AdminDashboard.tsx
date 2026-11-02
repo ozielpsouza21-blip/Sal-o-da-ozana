@@ -18,6 +18,7 @@ import {
   CheckCircle2,
   LogOut,
   Database,
+  QrCode,
 } from 'lucide-react';
 import {
   AdminModule,
@@ -50,6 +51,7 @@ import { ShowcaseModule } from './modules/ShowcaseModule';
 import { ConversationsModule } from './modules/ConversationsModule';
 import { CustomizationModule } from './modules/CustomizationModule';
 import { DiagnosticModule } from './modules/DiagnosticModule';
+import { PaymentConfigModule } from './modules/PaymentConfigModule';
 
 interface AdminDashboardProps {
   services: Service[];
@@ -99,6 +101,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     { id: 'visao-geral', label: 'Visão Geral', icon: <LayoutDashboard size={18} /> },
     { id: 'financeiro', label: 'Financeiro', icon: <DollarSign size={18} /> },
     { id: 'caixa', label: 'Caixa', icon: <Receipt size={18} />, badge: cashStatus.isOpen ? 'Aberto' : 'Fechado' },
+    {
+      id: 'config-pagamentos',
+      label: 'Configuração de Pagamentos',
+      icon: <QrCode size={18} />,
+      badge: StorageService.getPaymentProofs().filter(p => p.status === 'aguardando_confirmacao').length || undefined,
+    },
     { id: 'agenda', label: 'Agendamentos', icon: <Calendar size={18} />, badge: appointments.filter(a => a.status === 'agendado').length || undefined },
     { id: 'clientes', label: 'Clientes', icon: <Users size={18} /> },
     { id: 'profissionais', label: 'Profissionais', icon: <Scissors size={18} /> },
@@ -157,6 +165,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     'conversas': 'Conversas',
     'personalizacao': 'Personalização',
     'diagnostico': 'Diagnóstico de Dados',
+    'config-pagamentos': 'Configuração de Pagamentos',
   };
   const currentModuleName = moduleLabels[activeModule] || 'Visão Geral';
 
@@ -244,6 +253,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               appointments={appointments}
               services={services}
               products={products}
+              professionals={professionals}
+              cashStatus={cashStatus}
+              transactions={transactions}
+              onRefreshData={onRefreshData}
+              onNavigateToCaixa={() => setActiveModule('caixa')}
             />
           )}
 
@@ -251,7 +265,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             <CashRegisterModule
               cashStatus={cashStatus}
               transactions={transactions}
+              appointments={appointments}
               onRefreshData={onRefreshData}
+              onNavigateToFinanceiro={() => setActiveModule('financeiro')}
             />
           )}
 
@@ -320,6 +336,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
           {activeModule === 'diagnostico' && (
             <DiagnosticModule />
+          )}
+
+          {activeModule === 'config-pagamentos' && (
+            <PaymentConfigModule
+              onRefreshData={onRefreshData}
+              appointments={appointments}
+            />
           )}
         </main>
       </div>

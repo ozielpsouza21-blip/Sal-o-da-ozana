@@ -17,11 +17,16 @@ import {
   Coffee,
   X,
   LogOut,
+  QrCode,
+  CreditCard,
 } from 'lucide-react';
 import { Appointment, ClientProfile, ClientTab, Professional, Service } from '../../types';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
 import { StorageService } from '../../services/storage';
+import { SupabaseDataService } from '../../services/supabaseDataService';
+import { processImageFile } from '../../utils/imageUpload';
+import { ClientPaymentsView } from './ClientPaymentsView';
 
 interface ClientPortalProps {
   currentClient: ClientProfile;
@@ -62,6 +67,34 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
   const [editAllergies, setEditAllergies] = useState(currentClient.allergies || '');
   const [editDrink, setEditDrink] = useState(currentClient.favoriteDrink || '');
   const [saveProfileSuccess, setSaveProfileSuccess] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setIsUploadingPhoto(true);
+    try {
+      const dataUrl = await processImageFile(file, 600, 600, 0.88);
+      await SupabaseDataService.updateClient(currentClient.id, { avatarUrl: dataUrl });
+      onRefreshData();
+    } catch (err: any) {
+      alert(err?.message || 'Erro ao carregar a foto do dispositivo.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await processImageFile(file, 1400, 600, 0.85);
+      await SupabaseDataService.updateClient(currentClient.id, { bannerUrl: dataUrl });
+      onRefreshData();
+    } catch (err: any) {
+      alert(err?.message || 'Erro ao carregar o banner do dispositivo.');
+    }
+  };
 
   // Chat in portal state
   const [chatInput, setChatInput] = useState('');
@@ -194,19 +227,64 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
               ))}
             </select>
           </div>
+          {/* Banner Photo Upload Button */}
+          <div className="absolute bottom-3 right-4 z-10">
+            <label
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-medium bg-black/75 backdrop-blur-md border border-white/10 text-neutral-200 hover:text-[#f3e5ab] hover:border-[#d4af37]/40 transition-colors cursor-pointer"
+              title="Trocar capa pelo celular ou galeria"
+            >
+              <Camera size={13} className="text-[#d4af37]" />
+              <span className="hidden sm:inline">Trocar Capa</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleBannerUpload}
+                className="hidden"
+              />
+            </label>
+          </div>
         </div>
 
         {/* Profile Card Header */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-16 sm:-mt-20 pb-6 relative z-10">
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div className="flex items-end gap-4">
-              <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 border-[#d4af37] shadow-2xl bg-[#1a1a24] shrink-0">
+              <div className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-2xl overflow-hidden border-2 border-[#d4af37] shadow-2xl bg-[#1a1a24] shrink-0 group">
                 <img
                   src={currentClient.avatarUrl}
                   alt={currentClient.name}
                   className="w-full h-full object-cover"
                   referrerPolicy="no-referrer"
                 />
+
+                {/* Direct Mobile Upload Button over Avatar */}
+                <label
+                  className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-1 text-[#f3e5ab] text-[10px] font-medium transition-opacity cursor-pointer backdrop-blur-xs"
+                  title="Tirar foto ou escolher da galeria do celular"
+                >
+                  <Camera size={20} className="text-[#d4af37]" />
+                  <span>{isUploadingPhoto ? 'Enviando...' : 'Trocar Foto'}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
+                </label>
+
+                {/* Always-visible small camera badge on mobile */}
+                <label
+                  className="absolute bottom-1 right-1 p-1.5 rounded-full bg-black/90 border border-[#d4af37]/60 text-[#f3e5ab] shadow-md cursor-pointer sm:hidden"
+                  title="Tirar foto com o celular"
+                >
+                  <Camera size={12} className="text-[#d4af37]" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarUpload}
+                    className="hidden"
+                  />
+                </label>
               </div>
 
               <div className="space-y-1">
@@ -271,6 +349,18 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
             >
               <Plus size={15} />
               <span>Agendar Horário</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('pagamentos')}
+              className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold uppercase tracking-wider border-b-2 transition-colors whitespace-nowrap ${
+                activeTab === 'pagamentos'
+                  ? 'border-[#d4af37] text-[#f3e5ab]'
+                  : 'border-transparent text-neutral-400 hover:text-white'
+              }`}
+            >
+              <QrCode size={15} />
+              <span>Pagamentos</span>
             </button>
 
             <button
@@ -394,9 +484,27 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
 
                       <div className="mt-3 text-xs text-neutral-400 flex items-center justify-between">
                         <span>Duração: ~{apt.durationMinutes} min</span>
-                        <span className="font-mono font-semibold text-[#f3e5ab]">
-                          R$ {apt.priceBRL.toFixed(2)}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-semibold text-[#f3e5ab]">
+                            R$ {apt.priceBRL.toFixed(2)}
+                          </span>
+                          {apt.paymentStatus === 'pago' ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                              Pago
+                            </span>
+                          ) : apt.paymentStatus === 'aguardando_confirmacao' ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                              Conferindo PIX
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => setActiveTab('pagamentos')}
+                              className="text-[10px] px-2 py-0.5 rounded-full bg-[#d4af37]/20 text-[#f3e5ab] hover:bg-[#d4af37]/30 border border-[#d4af37]/40 font-medium cursor-pointer transition-colors"
+                            >
+                              Pagar PIX
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       {apt.notes && (
@@ -779,6 +887,32 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
               )}
 
               <form onSubmit={handleSaveProfile} className="space-y-4">
+                {/* Foto de Perfil Upload */}
+                <div className="p-3.5 bg-[#14141d] rounded-xl border border-white/10 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={currentClient.avatarUrl}
+                      alt={currentClient.name}
+                      className="w-14 h-14 rounded-full object-cover border-2 border-[#d4af37]"
+                    />
+                    <div>
+                      <span className="text-xs font-semibold text-white block">Sua Foto de Perfil</span>
+                      <span className="text-[11px] text-neutral-400">Tire uma foto com a câmera ou escolha da galeria</span>
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#1a1a24] text-[#f3e5ab] border border-[#d4af37]/40 hover:bg-[#d4af37] hover:text-black text-xs font-medium transition-colors cursor-pointer shrink-0">
+                    <Camera size={14} />
+                    <span>{isUploadingPhoto ? 'Enviando...' : 'Carregar Foto'}</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+
                 <div>
                   <label className="text-xs font-medium text-neutral-300 block mb-1">
                     Nome Completo
@@ -852,6 +986,15 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
               </form>
             </Card>
           </div>
+        )}
+
+        {/* TAB: PAGAMENTOS */}
+        {activeTab === 'pagamentos' && (
+          <ClientPaymentsView
+            currentClient={currentClient}
+            appointments={appointments}
+            onRefreshData={onRefreshData}
+          />
         )}
       </main>
     </div>

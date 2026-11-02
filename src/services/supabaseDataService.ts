@@ -21,6 +21,8 @@ import {
   Professional,
   Service,
   ThemeConfig,
+  CashClosingRecord,
+  BillRecord,
 } from '../types';
 
 export const SupabaseDataService = {
@@ -216,6 +218,33 @@ export const SupabaseDataService = {
     return local;
   },
 
+  updateProfessional: async (id: string, updates: Partial<Professional>): Promise<boolean> => {
+    StorageService.updateProfessional(id, updates);
+    if (!isSupabaseConfigured() || !supabase) return true;
+
+    try {
+      const payload: any = {};
+      if (updates.name !== undefined) payload.name = updates.name;
+      if (updates.roleTitle !== undefined) payload.role_title = updates.roleTitle;
+      if (updates.avatarUrl !== undefined) payload.avatar_url = updates.avatarUrl;
+      if (updates.bio !== undefined) payload.bio = updates.bio;
+      if (updates.commissionRate !== undefined) payload.commission_rate = updates.commissionRate;
+      if (updates.specialties !== undefined) payload.specialties = updates.specialties;
+      if (updates.phone !== undefined) payload.phone = updates.phone;
+      if (updates.email !== undefined) payload.email = updates.email;
+      if (updates.active !== undefined) payload.ativo = updates.active;
+      payload.updated_at = new Date().toISOString();
+
+      await supabase
+        .from('profissionais')
+        .update(payload)
+        .eq('id', id);
+    } catch (e) {
+      console.warn('Atualização remota de profissional falhou:', e);
+    }
+    return true;
+  },
+
   // --------------------------------------------------------------------------
   // 3. CLIENTES (CRM)
   // --------------------------------------------------------------------------
@@ -279,6 +308,34 @@ export const SupabaseDataService = {
       console.warn('Persistência remota de cliente falhou, mantido localmente:', e);
     }
     return local;
+  },
+
+  updateClient: async (id: string, updates: Partial<ClientProfile>): Promise<boolean> => {
+    StorageService.updateClient(id, updates);
+    if (!isSupabaseConfigured() || !supabase) return true;
+
+    try {
+      const payload: any = {};
+      if (updates.name !== undefined) payload.name = updates.name;
+      if (updates.email !== undefined) payload.email = updates.email;
+      if (updates.phone !== undefined) payload.phone = updates.phone;
+      if (updates.avatarUrl !== undefined) payload.avatar_url = updates.avatarUrl;
+      if (updates.vipTier !== undefined) payload.vip_tier = updates.vipTier;
+      if (updates.vipPoints !== undefined) payload.vip_points = updates.vipPoints;
+      if (updates.formulaNote !== undefined) payload.formula_note = updates.formulaNote;
+      if (updates.preferences !== undefined) payload.preferences = updates.preferences;
+      if (updates.allergies !== undefined) payload.allergies = updates.allergies;
+      if (updates.favoriteDrink !== undefined) payload.favorite_drink = updates.favoriteDrink;
+      payload.updated_at = new Date().toISOString();
+
+      await supabase
+        .from('clientes')
+        .update(payload)
+        .eq('id', id);
+    } catch (e) {
+      console.warn('Atualização remota de cliente falhou:', e);
+    }
+    return true;
   },
 
   // --------------------------------------------------------------------------
@@ -530,6 +587,65 @@ export const SupabaseDataService = {
       console.warn('Persistência remota de transação falhou:', e);
     }
     return local;
+  },
+
+  updateCashStatus: async (status: CashRegisterStatus): Promise<boolean> => {
+    StorageService.saveCashStatus(status);
+    if (!isSupabaseConfigured() || !supabase) return true;
+
+    try {
+      const { data } = await supabase
+        .from('caixa_status')
+        .select('id')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      const payload = {
+        is_open: status.isOpen,
+        opened_at: status.openedAt,
+        opened_by: status.openedBy,
+        initial_balance_brl: status.initialBalanceBRL,
+        current_balance_brl: status.currentBalanceBRL,
+        total_entradas: status.totalEntradas,
+        total_saidas: status.totalSaidas,
+      };
+
+      if (data && data.length > 0) {
+        await supabase
+          .from('caixa_status')
+          .update(payload)
+          .eq('id', data[0].id);
+      } else {
+        await supabase
+          .from('caixa_status')
+          .insert(payload);
+      }
+    } catch (e) {
+      console.warn('Persistência remota de caixa_status falhou:', e);
+    }
+    return true;
+  },
+
+  openCashRegister: async (initialBalanceBRL: number, operatorName: string): Promise<void> => {
+    StorageService.openCashRegister(initialBalanceBRL, operatorName);
+    const updatedStatus = StorageService.getCashStatus();
+    await SupabaseDataService.updateCashStatus(updatedStatus);
+  },
+
+  closeCashRegister: async (
+    operatorName: string,
+    closingData?: {
+      countedCashBRL: number;
+      countedCardBRL: number;
+      countedPixBRL: number;
+      differenceReason?: string;
+      notes?: string;
+    }
+  ): Promise<CashClosingRecord> => {
+    const record = StorageService.closeCashRegister(operatorName, closingData);
+    const updatedStatus = StorageService.getCashStatus();
+    await SupabaseDataService.updateCashStatus(updatedStatus);
+    return record;
   },
 
   // --------------------------------------------------------------------------

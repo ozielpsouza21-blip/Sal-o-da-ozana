@@ -14,9 +14,10 @@ export type AdminModule =
   | 'vitrine' 
   | 'conversas' 
   | 'personalizacao'
-  | 'diagnostico';
+  | 'diagnostico'
+  | 'config-pagamentos';
 
-export type ClientTab = 'agendamentos' | 'novo' | 'historico' | 'perfil' | 'vip' | 'chat';
+export type ClientTab = 'agendamentos' | 'novo' | 'pagamentos' | 'historico' | 'perfil' | 'vip' | 'chat';
 
 export type ProfessionalTab = 'agenda' | 'atendimentos' | 'comissoes' | 'perfil' | 'chat';
 
@@ -102,7 +103,9 @@ export interface Appointment {
   durationMinutes: number;
   priceBRL: number;
   status: AppointmentStatus;
-  paymentMethod?: 'cartao_credito' | 'cartao_debito' | 'dinheiro' | 'pix_simulado' | 'pendente';
+  paymentMethod?: 'cartao_credito' | 'cartao_debito' | 'dinheiro' | 'pix' | 'pix_simulado' | 'pendente';
+  paymentStatus?: 'pendente' | 'aguardando_confirmacao' | 'pago' | 'cancelado';
+  paymentProofUrl?: string;
   notes?: string;
   formulaRecord?: string;
 }
@@ -116,6 +119,8 @@ export interface CashTransaction {
   timestamp: string;
   operatorName: string;
   appointmentId?: string;
+  paymentMethod?: 'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito' | 'transferencia' | 'outro';
+  costType?: 'fixa' | 'variavel';
 }
 
 export interface CashRegisterStatus {
@@ -126,6 +131,55 @@ export interface CashRegisterStatus {
   currentBalanceBRL: number;
   totalEntradas: number;
   totalSaidas: number;
+}
+
+export type BillType = 'pagar' | 'receber';
+export type BillCategory =
+  | 'Serviços'
+  | 'Boutique Home Care'
+  | 'Comissões de Especialistas'
+  | 'Insumos & Produtos de Bancada'
+  | 'Aluguel & Condomínio'
+  | 'Energia, Água & Conectividade'
+  | 'Mimos & Experiência Gourmet'
+  | 'Marketing & Mídia'
+  | 'Impostos & Taxas de Cartão'
+  | 'Outros';
+
+export type BillCostType = 'fixa' | 'variavel';
+export type BillStatus = 'pendente' | 'pago' | 'atrasado';
+
+export interface BillRecord {
+  id: string;
+  type: BillType;
+  title: string;
+  category: BillCategory;
+  costType: BillCostType;
+  amountBRL: number;
+  dueDate: string; // YYYY-MM-DD
+  paymentDate?: string;
+  status: BillStatus;
+  paymentMethod: 'dinheiro' | 'pix' | 'cartao_credito' | 'cartao_debito' | 'transferencia' | 'boleto';
+  supplierOrRecipient?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface CashClosingRecord {
+  id: string;
+  closedAt: string;
+  operatorName: string;
+  initialBalanceBRL: number;
+  totalEntradas: number;
+  totalSaidas: number;
+  expectedBalanceBRL: number;
+  countedCashBRL: number;
+  countedCardBRL: number;
+  countedPixBRL: number;
+  totalCountedBRL: number;
+  differenceBRL: number; // countedCash - expectedBalance
+  differenceReason?: string;
+  notes?: string;
 }
 
 export interface ChatMessage {
@@ -167,4 +221,38 @@ export interface ThemeConfig {
   openingHours: string;
   show3dParticles: boolean;
   bannerVideoUrl?: string;
+}
+
+export type PixKeyType = 'cpf' | 'cnpj' | 'email' | 'telefone' | 'aleatoria';
+
+export interface PixConfig {
+  ativo: boolean;
+  chavePix: string;
+  tipoChave: PixKeyType;
+  titular: string;
+  banco: string;
+  cidade?: string;
+  copiaECola: string;
+  qrCodeUrl: string;
+  instrucoes?: string;
+  updatedAt?: string;
+}
+
+export type PaymentProofStatus = 'aguardando_confirmacao' | 'confirmado' | 'rejeitado';
+
+export interface PaymentProofRecord {
+  id: string;
+  appointmentId?: string;
+  clientId: string;
+  clientName: string;
+  clientPhone?: string;
+  amountBRL: number;
+  description: string;
+  proofImageUrl?: string;
+  proofFileName?: string;
+  status: PaymentProofStatus;
+  submittedAt: string;
+  confirmedAt?: string;
+  confirmedBy?: string;
+  adminNotes?: string;
 }
