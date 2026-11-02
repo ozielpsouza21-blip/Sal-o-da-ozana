@@ -1,16 +1,38 @@
-import React, { useState } from 'react';
-import { Menu, X, Download, ShieldCheck, Smartphone, Sparkles, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Menu, X, Download, ShieldCheck, Smartphone, Sparkles, CheckCircle2, User, Scissors, ChevronLeft } from 'lucide-react';
 import { usePWAInstall } from '../../hooks/usePWAInstall';
 
 interface ExternalSideMenuProps {
   onOpenAdmin: () => void;
+  onOpenClient: () => void;
+  onOpenProfessional: () => void;
+  hasAuthUser: boolean;
+  onOpenClientAuth: () => void;
+  onOpenProAuth: () => void;
 }
 
-export const ExternalSideMenu: React.FC<ExternalSideMenuProps> = ({ onOpenAdmin }) => {
+export const ExternalSideMenu: React.FC<ExternalSideMenuProps> = ({
+  onOpenAdmin,
+  onOpenClient,
+  onOpenProfessional,
+  hasAuthUser,
+  onOpenClientAuth,
+  onOpenProAuth,
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [showIOSGuide, setShowIOSGuide] = useState(false);
   const [installedNotice, setInstalledNotice] = useState(false);
   const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen]);
 
   const handleInstallClick = async () => {
     if (isInstalled) {
@@ -26,34 +48,41 @@ export const ExternalSideMenu: React.FC<ExternalSideMenuProps> = ({ onOpenAdmin 
       await install();
       return;
     }
-    // Fallback guidance if not promptable directly
     setShowIOSGuide(true);
   };
 
   return (
     <>
-      {/* Floating External Menu Button (Accessible outside footer) */}
-      <div className="fixed top-20 right-4 z-40">
+      {/* Fixed External Menu Button at the top */}
+      <div className="fixed top-3 sm:top-4 right-3 sm:right-6 z-50">
         <button
           onClick={() => setIsOpen(true)}
-          className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#0f0f15]/90 border border-[#d4af37]/40 text-[#f3e5ab] shadow-xl hover:bg-[#181822] transition-all cursor-pointer backdrop-blur-md"
-          title="Menu de Opções e Instalação PWA"
+          className="flex items-center gap-2 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-xl bg-[#0f0f15]/95 border border-[#d4af37]/60 text-[#f3e5ab] shadow-2xl hover:bg-[#181822] transition-all cursor-pointer backdrop-blur-md"
+          title="Menu de Opções, PWA e Portais"
           aria-label="Menu Externo"
         >
           <Menu size={18} className="text-[#d4af37]" />
-          <span className="text-xs font-semibold tracking-wider uppercase hidden sm:inline">Menu PWA / ADM</span>
+          <span className="text-xs font-semibold tracking-wider uppercase hidden sm:inline">Menu Atelier</span>
         </button>
       </div>
 
       {/* Side Menu Drawer */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="w-full max-w-xs bg-[#0c0c10] border-l border-[#d4af37]/30 h-full flex flex-col p-6 shadow-2xl relative overflow-y-auto">
+        <div
+          className="fixed inset-0 z-50 flex justify-end bg-black/70 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setIsOpen(false);
+          }}
+        >
+          <div
+            className="w-full max-w-xs bg-[#0c0c10] border-l border-[#d4af37]/30 h-full flex flex-col p-6 shadow-2xl relative overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
             
             {/* Header */}
             <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#d4af37] via-[#f3e5ab] to-[#aa8422] flex items-center justify-center text-black">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#d4af37] via-[#f3e5ab] to-[#aa8422] flex items-center justify-center text-black font-bold">
                   <Sparkles size={16} />
                 </div>
                 <div>
@@ -61,20 +90,81 @@ export const ExternalSideMenu: React.FC<ExternalSideMenuProps> = ({ onOpenAdmin 
                   <span className="text-[10px] text-[#d4af37] tracking-widest uppercase">Atelier Menu</span>
                 </div>
               </div>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                  title="Recolher menu"
+                  aria-label="Recolher menu"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/5 transition-colors cursor-pointer"
+                  title="Fechar menu"
+                  aria-label="Fechar menu"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
 
             {/* Menu Options */}
             <div className="flex flex-col gap-3">
               <div className="text-[10px] font-semibold tracking-wider text-neutral-400 uppercase px-1">
+                Portais Exclusivos
+              </div>
+
+              {/* Área do Cliente */}
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  if (!hasAuthUser) {
+                    onOpenClientAuth();
+                  } else {
+                    onOpenClient();
+                  }
+                }}
+                className="w-full p-3.5 rounded-xl bg-[#15151f] border border-white/10 hover:border-[#d4af37]/50 text-left flex items-center gap-3 transition-all group cursor-pointer shadow-md"
+              >
+                <div className="p-2 rounded-lg bg-[#d4af37]/10 text-[#d4af37] group-hover:scale-110 transition-transform">
+                  <User size={18} />
+                </div>
+                <div>
+                  <span className="block text-xs font-semibold text-white">Área do Cliente</span>
+                  <span className="text-[10px] text-neutral-400">Agendamentos, selo VIP e histórico</span>
+                </div>
+              </button>
+
+              {/* Área do Profissional */}
+              <button
+                onClick={() => {
+                  setIsOpen(false);
+                  if (!hasAuthUser) {
+                    onOpenProAuth();
+                  } else {
+                    onOpenProfessional();
+                  }
+                }}
+                className="w-full p-3.5 rounded-xl bg-[#15151f] border border-white/10 hover:border-[#d4af37]/50 text-left flex items-center gap-3 transition-all group cursor-pointer shadow-md"
+              >
+                <div className="p-2 rounded-lg bg-[#d4af37]/10 text-[#d4af37] group-hover:scale-110 transition-transform">
+                  <Scissors size={18} />
+                </div>
+                <div>
+                  <span className="block text-xs font-semibold text-white">Área do Profissional</span>
+                  <span className="text-[10px] text-neutral-400">Agenda de cadeira e comissões</span>
+                </div>
+              </button>
+
+              <div className="my-2 border-t border-white/10" />
+
+              <div className="text-[10px] font-semibold tracking-wider text-neutral-400 uppercase px-1">
                 Aplicativo & Instalação
               </div>
 
+              {/* Instalar PWA */}
               <button
                 onClick={handleInstallClick}
                 className="w-full p-3.5 rounded-xl bg-[#15151f] border border-[#d4af37]/30 hover:border-[#d4af37] text-left flex items-center gap-3 transition-all group cursor-pointer shadow-md"
@@ -105,6 +195,7 @@ export const ExternalSideMenu: React.FC<ExternalSideMenuProps> = ({ onOpenAdmin 
                 Gestão Administrativa
               </div>
 
+              {/* Acesso ADM */}
               <button
                 onClick={() => {
                   setIsOpen(false);

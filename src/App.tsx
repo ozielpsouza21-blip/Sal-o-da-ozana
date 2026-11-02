@@ -29,6 +29,7 @@ import { Button } from './components/common/Button';
 
 // Main Views
 import { PublicHomePage } from './components/public/PublicHomePage';
+import { VitrineView } from './components/public/VitrineView';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { ClientPortal } from './components/client/ClientPortal';
 import { ProfessionalPortal } from './components/professional/ProfessionalPortal';
@@ -281,9 +282,20 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#08080a] text-neutral-100 flex flex-col font-sans selection:bg-[#d4af37]/30 selection:text-[#f3e5ab] pb-24">
-      {/* External Side Menu (PWA & ADM access) */}
+      {/* External Side Menu */}
       <ExternalSideMenu
         onOpenAdmin={() => handleSelectRole('admin')}
+        onOpenClient={() => handleSelectRole('client')}
+        onOpenProfessional={() => handleSelectRole('professional')}
+        hasAuthUser={!!authUserEmail}
+        onOpenClientAuth={() => {
+          setClientAuthInitialMode('login');
+          setIsClientAuthOpen(true);
+        }}
+        onOpenProAuth={() => {
+          setProAuthInitialMode('login');
+          setIsProAuthOpen(true);
+        }}
       />
 
       {/* Fixed Footer Navigation Bar (Início, Vitrine, Cliente, Profissional, Chat) */}
@@ -301,7 +313,6 @@ export default function App() {
           setIsProAuthOpen(true);
         }}
         onOpenChat={() => {
-          // Trigger floating chat click if available or scroll/focus
           const chatBtn = document.querySelector('[aria-label="Abrir chat do concierge"]') as HTMLButtonElement;
           if (chatBtn) chatBtn.click();
         }}
@@ -351,16 +362,25 @@ export default function App() {
                 onOpenAuthView={handleOpenAuthView}
                 onLogout={handleLogout}
               />
-              <PublicHomePage
-                services={services}
-                products={products}
-                professionals={professionals}
-                activeTab={publicTab}
-                onSelectTab={tab => setPublicTab(tab)}
-                onSelectRole={handleSelectRole}
-                onOpenBookingModal={handleOpenBooking}
-                show3dParticles={themeConfig.show3dParticles}
-              />
+              {publicTab === 'home' ? (
+                <PublicHomePage
+                  services={services}
+                  products={products}
+                  professionals={professionals}
+                  activeTab={publicTab}
+                  onSelectTab={tab => setPublicTab(tab)}
+                  onSelectRole={handleSelectRole}
+                  onOpenBookingModal={handleOpenBooking}
+                  show3dParticles={themeConfig.show3dParticles}
+                />
+              ) : (
+                <VitrineView
+                  services={services}
+                  products={products}
+                  professionals={professionals}
+                  onOpenBookingModal={handleOpenBooking}
+                />
+              )}
             </>
           )}
 

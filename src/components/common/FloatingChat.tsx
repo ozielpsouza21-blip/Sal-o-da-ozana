@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { MessageSquare, X, Send, Sparkles, Clock, CheckCheck, Minimize2 } from 'lucide-react';
+import { MessageSquare, X, Send, Sparkles, Clock, CheckCheck, Minimize2, ChevronLeft } from 'lucide-react';
 import { StorageService } from '../../services/storage';
 import { ChatMessage } from '../../types';
 
@@ -19,8 +19,29 @@ export const FloatingChat: React.FC<FloatingChatProps> = ({
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const chatRef = useRef<HTMLDivElement | null>(null);
 
   const conversationId = userRole === 'client' ? 'conv-1' : 'conv-visitor';
+
+  // Click outside and ESC listener
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (isOpen && chatRef.current && !chatRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   // Load initial messages
   useEffect(() => {
@@ -119,7 +140,11 @@ export const FloatingChat: React.FC<FloatingChatProps> = ({
 
       {/* Floating Chat Box Window */}
       {isOpen && (
-        <div className="w-[340px] sm:w-[390px] h-[520px] max-h-[85vh] bg-[#101014] border border-[#d4af37]/40 rounded-2xl shadow-2xl shadow-black flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+        <div
+          ref={chatRef}
+          className="w-[340px] sm:w-[390px] h-[520px] max-h-[85vh] bg-[#101014] border border-[#d4af37]/40 rounded-2xl shadow-2xl shadow-black flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+          onClick={(e) => e.stopPropagation()}
+        >
           {/* Header */}
           <div className="p-4 bg-gradient-to-r from-[#181822] via-[#14141a] to-[#1a1a24] border-b border-white/[0.08] flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -140,15 +165,15 @@ export const FloatingChat: React.FC<FloatingChatProps> = ({
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
-                title="Minimizar chat"
-                aria-label="Minimizar chat"
+                className="p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                title="Recolher chat"
+                aria-label="Recolher chat"
               >
-                <Minimize2 size={16} />
+                <ChevronLeft size={16} />
               </button>
               <button
                 onClick={() => setIsOpen(false)}
-                className="p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors"
+                className="p-1.5 text-neutral-400 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
                 title="Fechar chat"
                 aria-label="Fechar chat"
               >

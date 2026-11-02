@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Sparkles, Menu, X, Shield, User, Scissors, Calendar, Home, ShoppingBag, Layers, LogIn, LogOut } from 'lucide-react';
+import React from 'react';
+import { Sparkles, User, Scissors, LogOut } from 'lucide-react';
 import { AppRole, PublicTab } from '../../types';
 
 interface HeaderProps {
@@ -19,14 +19,10 @@ export const Header: React.FC<HeaderProps> = ({
   onSelectRole,
   activePublicTab = 'home',
   onSelectPublicTab,
-  onOpenBookingModal,
   authUserEmail,
   authUserName,
-  onOpenAuthView,
   onLogout,
 }) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
   return (
     <header className="sticky top-0 z-40 w-full bg-[#08080a]/95 backdrop-blur-md border-b border-white/[0.08]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-4">
@@ -122,9 +118,9 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </nav>
 
-        {/* Zone 3: Essential Actions (Supabase Auth Login/User + Agendar Horário) */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          {authUserEmail ? (
+        {/* Zone 3: Essential Actions (Supabase User Profile if logged in) */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0 pr-12 sm:pr-16">
+          {authUserEmail && (
             <div className="hidden sm:flex items-center gap-2 bg-[#14141c] border border-[#d4af37]/30 rounded-xl px-3 py-1.5 text-xs">
               <div className="w-6 h-6 rounded-full bg-[#d4af37]/20 text-[#f3e5ab] flex items-center justify-center font-bold text-[10px]">
                 {(authUserName || authUserEmail).charAt(0).toUpperCase()}
@@ -145,167 +141,9 @@ export const Header: React.FC<HeaderProps> = ({
                 <LogOut size={14} />
               </button>
             </div>
-          ) : (
-            <button
-              onClick={() => onOpenAuthView?.('login')}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-[#15151c] text-neutral-200 border border-white/10 hover:border-[#d4af37]/50 hover:text-[#f3e5ab] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              title="Entrar com e-mail e senha pelo Supabase Auth"
-            >
-              <LogIn size={14} className="text-[#d4af37]" />
-              <span>Entrar / Login</span>
-            </button>
           )}
-
-          <button
-            onClick={() => onSelectRole('admin')}
-            className={`hidden lg:flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 ${
-              currentRole === 'admin'
-                ? 'bg-[#d4af37] text-black font-semibold shadow-md shadow-[#d4af37]/20'
-                : 'bg-[#15151c] text-neutral-300 border border-white/10 hover:border-[#d4af37]/50 hover:text-[#f3e5ab]'
-            }`}
-            title="Acessar Painel Administrativo do Salão"
-          >
-            <Shield size={14} className={currentRole === 'admin' ? 'text-black' : 'text-[#d4af37]'} />
-            <span>Painel Admin</span>
-          </button>
-
-          {/* Primary Action Button */}
-          <button
-            onClick={onOpenBookingModal}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-xs font-semibold rounded-lg bg-gradient-to-r from-[#d4af37] via-[#f3e5ab] to-[#aa8422] text-[#0a0a0c] shadow-md shadow-[#d4af37]/20 hover:brightness-105 active:scale-95 transition-all whitespace-nowrap shrink-0 cursor-pointer"
-          >
-            <Calendar size={14} />
-            <span>Agendar <span className="hidden sm:inline">Horário</span></span>
-          </button>
-
-          {/* Mobile hamburger menu button ☰ */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-neutral-300 hover:text-[#f3e5ab] rounded-lg lg:hidden border border-white/10 hover:bg-white/5 transition-colors cursor-pointer"
-            aria-label="Abrir menu lateral"
-            title="Menu de Navegação"
-          >
-            {mobileMenuOpen ? <X size={22} className="text-[#d4af37]" /> : <Menu size={22} />}
-          </button>
         </div>
       </div>
-
-      {/* Vertical Mobile Drawer Overlay (Menu Lateral Vertical 9:16) */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden bg-[#0c0c10]/98 backdrop-blur-xl border-b border-[#d4af37]/30 px-4 py-5 shadow-2xl animate-in slide-in-from-top-2 duration-200">
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-[#d4af37] mb-3 px-1">
-            Menu do Atelier Sra. Bela Mulher
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <button
-              onClick={() => {
-                onSelectRole('visitor');
-                onSelectPublicTab?.('home');
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full p-3 text-left text-xs font-medium rounded-xl flex items-center gap-3 transition-colors ${
-                currentRole === 'visitor' && activePublicTab === 'home'
-                  ? 'bg-[#1a1a24] text-[#f3e5ab] border border-[#d4af37]/40 shadow-sm'
-                  : 'bg-[#121217] text-neutral-200 border border-white/5 hover:bg-white/5'
-              }`}
-            >
-              <Home size={16} className="text-[#d4af37]" />
-              <span>Início - Página Principal</span>
-            </button>
-
-            <button
-              onClick={() => {
-                onSelectRole('visitor');
-                onSelectPublicTab?.('vitrine');
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full p-3 text-left text-xs font-medium rounded-xl flex items-center gap-3 transition-colors ${
-                currentRole === 'visitor' && activePublicTab === 'vitrine'
-                  ? 'bg-[#1a1a24] text-[#f3e5ab] border border-[#d4af37]/40 shadow-sm'
-                  : 'bg-[#121217] text-neutral-200 border border-white/5 hover:bg-white/5'
-              }`}
-            >
-              <ShoppingBag size={16} className="text-[#d4af37]" />
-              <span>Vitrine de Produtos Home Care</span>
-            </button>
-
-            <button
-              onClick={() => {
-                onSelectRole('visitor');
-                onSelectPublicTab?.('servicos');
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full p-3 text-left text-xs font-medium rounded-xl flex items-center gap-3 transition-colors ${
-                currentRole === 'visitor' && activePublicTab === 'servicos'
-                  ? 'bg-[#1a1a24] text-[#f3e5ab] border border-[#d4af37]/40 shadow-sm'
-                  : 'bg-[#121217] text-neutral-200 border border-white/5 hover:bg-white/5'
-              }`}
-            >
-              <Layers size={16} className="text-[#d4af37]" />
-              <span>Serviços & Rituais de Luxo</span>
-            </button>
-
-            <div className="my-1 border-t border-white/[0.08]" />
-
-            <button
-              onClick={() => {
-                onSelectRole('client');
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full p-3 text-left text-xs font-medium rounded-xl flex items-center gap-3 transition-colors ${
-                currentRole === 'client'
-                  ? 'bg-[#1a1a24] text-[#f3e5ab] border border-[#d4af37]/40 shadow-sm'
-                  : 'bg-[#121217] text-neutral-200 border border-white/5 hover:bg-white/5'
-              }`}
-            >
-              <User size={16} className="text-[#d4af37]" />
-              <div>
-                <span className="block font-semibold">Área Exclusiva da Cliente</span>
-                <span className="text-[10px] text-neutral-400">Selo VIP, histórico e agendamentos</span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
-                onSelectRole('professional');
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full p-3 text-left text-xs font-medium rounded-xl flex items-center gap-3 transition-colors ${
-                currentRole === 'professional'
-                  ? 'bg-[#1a1a24] text-[#f3e5ab] border border-[#d4af37]/40 shadow-sm'
-                  : 'bg-[#121217] text-neutral-200 border border-white/5 hover:bg-white/5'
-              }`}
-            >
-              <Scissors size={16} className="text-[#d4af37]" />
-              <div>
-                <span className="block font-semibold">Área da Profissional</span>
-                <span className="text-[10px] text-neutral-400">Agenda de cadeira e comissões</span>
-              </div>
-            </button>
-
-            <button
-              onClick={() => {
-                onSelectRole('admin');
-                setMobileMenuOpen(false);
-              }}
-              className={`w-full p-3 text-left text-xs font-medium rounded-xl flex items-center gap-3 transition-colors ${
-                currentRole === 'admin'
-                  ? 'bg-[#d4af37] text-black font-semibold shadow-md'
-                  : 'bg-[#161622] text-[#f3e5ab] border border-[#d4af37]/40 hover:bg-[#1a1a28]'
-              }`}
-            >
-              <Shield size={16} className={currentRole === 'admin' ? 'text-black' : 'text-[#d4af37]'} />
-              <div>
-                <span className="block font-semibold">Painel Administrativo (11 Módulos)</span>
-                <span className={`text-[10px] ${currentRole === 'admin' ? 'text-black/70' : 'text-neutral-400'}`}>
-                  Financeiro, Caixa, Agenda, Estoque e CRM
-                </span>
-              </div>
-            </button>
-          </div>
-        </div>
-      )}
     </header>
   );
 };
