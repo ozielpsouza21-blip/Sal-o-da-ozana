@@ -12,6 +12,7 @@ export type AdminModule =
   | 'servicos' 
   | 'produtos' 
   | 'vitrines'
+  | 'vitrine'
   | 'conversas' 
   | 'personalizacao'
   | 'diagnostico'
@@ -76,6 +77,7 @@ export interface Vitrine {
   coverImageUrl?: string;
   ativo: boolean;
   displayOrder: number;
+  productIds?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -207,6 +209,9 @@ export interface ChatMessage {
   text: string;
   timestamp: string;
   isRead: boolean;
+  attachedImageUrl?: string;
+  recommendedProducts?: Product[];
+  recommendedServices?: Service[];
 }
 
 export interface Conversation {
@@ -271,4 +276,9 @@ export interface PaymentProofRecord {
   confirmedAt?: string;
   confirmedBy?: string;
   adminNotes?: string;
+}
+
+export interface CartItem {
+  product: Product;
+  quantity: number;
 }

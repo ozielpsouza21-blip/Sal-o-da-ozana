@@ -16,6 +16,8 @@ import {
   CashTransaction,
   Conversation,
   ThemeConfig,
+  Vitrine,
+  CartItem,
 } from './types';
 import { StorageService } from './services/storage';
 import { SupabaseDataService } from './services/supabaseDataService';
@@ -30,6 +32,7 @@ import { Button } from './components/common/Button';
 // Main Views
 import { PublicHomePage } from './components/public/PublicHomePage';
 import { VitrineView } from './components/public/VitrineView';
+import { ShoppingCartDrawer } from './components/public/ShoppingCartDrawer';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { ClientPortal } from './components/client/ClientPortal';
 import { ProfessionalPortal } from './components/professional/ProfessionalPortal';
@@ -68,6 +71,60 @@ export default function App() {
   const [transactions, setTransactions] = useState<CashTransaction[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [themeConfig, setThemeConfig] = useState<ThemeConfig>(StorageService.getTheme());
+  const [vitrines, setVitrines] = useState<Vitrine[]>([]);
+
+  // Shopping Cart State
+  const [cartItems, setCartItems] = useState<CartItem[]>(() => StorageService.getCart());
+  const [isCartOpen, setIsCartOpen] = useState(false);
+
+  const handleAddToCart = (product: Product) => {
+    setCartItems(prev => {
+      const index = prev.findIndex(item => item.product.id === product.id);
+      let updated: CartItem[];
+      if (index !== -1) {
+        updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          quantity: updated[index].quantity + 1,
+        };
+      } else {
+        updated = [...prev, { product, quantity: 1 }];
+      }
+      StorageService.saveCart(updated);
+      return updated;
+    });
+    setIsCartOpen(true);
+  };
+
+  const handleUpdateCartQuantity = (productId: string, delta: number) => {
+    setCartItems(prev => {
+      const updated = prev
+        .map(item => {
+          if (item.product.id === productId) {
+            const newQty = item.quantity + delta;
+            return newQty > 0 ? { ...item, quantity: newQty } : null;
+          }
+          return item;
+        })
+        .filter((item): item is CartItem => item !== null);
+
+      StorageService.saveCart(updated);
+      return updated;
+    });
+  };
+
+  const handleRemoveFromCart = (productId: string) => {
+    setCartItems(prev => {
+      const updated = prev.filter(item => item.product.id !== productId);
+      StorageService.saveCart(updated);
+      return updated;
+    });
+  };
+
+  const handleClearCart = () => {
+    setCartItems([]);
+    StorageService.clearCart();
+  };
 
   // Active client & professional in session
   const [activeClient, setActiveClient] = useState<ClientProfile | null>(null);
@@ -84,7 +141,7 @@ export default function App() {
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
 
   const loadAllData = async () => {
-    const [s, p, c, prd, a, cs, tx, conv, th] = await Promise.all([
+    const [s, p, c, prd, a, cs, tx, conv, th, v] = await Promise.all([
       SupabaseDataService.fetchServices(),
       SupabaseDataService.fetchProfessionals(),
       SupabaseDataService.fetchClients(),
@@ -94,6 +151,7 @@ export default function App() {
       SupabaseDataService.fetchTransactions(),
       SupabaseDataService.fetchConversations(),
       SupabaseDataService.fetchThemeConfig(),
+      SupabaseDataService.fetchVitrines(),
     ]);
 
     setServices(s);
@@ -105,6 +163,7 @@ export default function App() {
     setTransactions(tx);
     setConversations(conv);
     setThemeConfig(th);
+    setVitrines(v);
 
     // Default active client & professional if none set
     if (!activeClient && c.length > 0) setActiveClient(c[0]);
@@ -365,6 +424,8 @@ export default function App() {
                 authUserName={authUserName}
                 onOpenAuthView={handleOpenAuthView}
                 onLogout={handleLogout}
+                cartItemCount={cartItems.reduce((acc, item) => acc + item.quantity, 0)}
+                onOpenCart={() => setIsCartOpen(true)}
               />
               {publicTab === 'home' ? (
                 <PublicHomePage
@@ -382,7 +443,9 @@ export default function App() {
                   services={services}
                   products={products}
                   professionals={professionals}
+                  vitrines={vitrines}
                   onOpenBookingModal={handleOpenBooking}
+                  onAddToCart={handleAddToCart}
                 />
               )}
             </>
@@ -451,11 +514,15 @@ export default function App() {
         </Modal>
       )}
 
-      {/* Reusable Floating Concierge Chat (Public & Portals) */}
+      {/* Reusable Floating AI Beauty Consultant Chat */}
       <FloatingChat
         currentUserId={role === 'client' ? activeClient?.id : role === 'professional' ? activePro?.id : 'guest-visitor'}
         currentUserName={role === 'client' ? activeClient?.name : role === 'professional' ? activePro?.name : 'Visitante'}
         userRole={role}
+        products={products}
+        services={services}
+        onAddToCart={handleAddToCart}
+        onOpenBookingModal={handleOpenBooking}
       />
 
       {/* GLOBAL MODAL: AGENDAMENTO RÁPIDO PÚBLICO */}
@@ -621,6 +688,15 @@ export default function App() {
           setAuthUserName(name || null);
           setIsProAuthOpen(false);
         }}
+      />
+      {/* Shopping Cart Drawer */}
+      <ShoppingCartDrawer
+        isOpen={isCartOpen}
+        onClose={() => setIsCartOpen(false)}
+        cartItems={cartItems}
+        onUpdateQuantity={handleUpdateCartQuantity}
+        onRemoveItem={handleRemoveFromCart}
+        onClearCart={handleClearCart}
       />
     </div>
   );

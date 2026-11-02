@@ -13,6 +13,7 @@ import {
   CashClosingRecord,
   PixConfig,
   PaymentProofRecord,
+  Vitrine,
 } from '../types';
 
 export const INITIAL_SERVICES: Service[] = [
@@ -574,3 +575,51 @@ export const INITIAL_PAYMENT_PROOFS: PaymentProofRecord[] = [
     adminNotes: 'Comprovante conferido no extrato bancário do Banco Inter.',
   },
 ];
+
+export const INITIAL_VITRINES: Vitrine[] = [
+  {
+    id: 'vitrine-1',
+    name: 'Coleção Noivas Imperiais',
+    description: 'Rituais exclusivos de beleza de noiva com teste prévio, suíte privativa e maquiagem HD.',
+    coverImageUrl: 'https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=800&q=80',
+    ativo: true,
+    displayOrder: 1,
+    productIds: ['prd-1', 'prd-4'],
+    createdAt: '2026-10-15T10:00:00Z',
+    updatedAt: '2026-10-15T10:00:00Z',
+  },
+  {
+    id: 'vitrine-2',
+    name: 'Espaço Blond & Morena Iluminada',
+    description: 'Especialização em mechas com proteção absoluta da fibra capilar e tonalizações signature.',
+    coverImageUrl: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=800&q=80',
+    ativo: true,
+    displayOrder: 2,
+    productIds: ['prd-1', 'prd-2', 'prd-3'],
+    createdAt: '2026-10-18T10:00:00Z',
+    updatedAt: '2026-10-18T10:00:00Z',
+  },
+  {
+    id: 'vitrine-3',
+    name: 'Boutique Home Care & Kits Especiais',
+    description: 'Linhas completas de alta nutrição Kérastase e L’Oréal Professionnel para tratamento em casa.',
+    coverImageUrl: 'https://images.unsplash.com/photo-1608248597262-838249719153?auto=format&fit=crop&w=800&q=80',
+    ativo: true,
+    displayOrder: 3,
+    productIds: ['prd-1', 'prd-2', 'prd-3', 'prd-4'],
+    createdAt: '2026-10-20T10:00:00Z',
+    updatedAt: '2026-10-20T10:00:00Z',
+  },
+  {
+    id: 'vitrine-4',
+    name: 'Spa de Estética Facial & Corporal Gold',
+    description: 'Protocolos avançados com peptídeos de ouro, revitalização facial e massagem relaxante.',
+    coverImageUrl: 'https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&w=800&q=80',
+    ativo: true,
+    displayOrder: 4,
+    productIds: ['prd-3', 'prd-4'],
+    createdAt: '2026-10-22T10:00:00Z',
+    updatedAt: '2026-10-22T10:00:00Z',
+  },
+];
+

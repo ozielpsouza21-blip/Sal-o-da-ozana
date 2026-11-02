@@ -23,6 +23,7 @@ import {
   ThemeConfig,
   CashClosingRecord,
   BillRecord,
+  Vitrine,
 } from '../types';
 
 export const SupabaseDataService = {
@@ -94,6 +95,7 @@ export const SupabaseDataService = {
         popular: Boolean(data.popular),
         featuredInVitrine: Boolean(data.featured_in_vitrine ?? true),
         active: Boolean(data.ativo ?? true),
+        displayOrder: Number(data.display_order ?? 0),
       };
 
       StorageService.addService(newSrv);
@@ -152,19 +154,22 @@ export const SupabaseDataService = {
   },
 
   // --------------------------------------------------------------------------
-  // 1.5 VITRINES (PLACEHOLDER)
+  // 1.5 VITRINES (MÚLTIPLAS VITRINES)
   // --------------------------------------------------------------------------
   fetchVitrines: async (): Promise<Vitrine[]> => {
-    return []; // Placeholder
+    // Retorna do StorageService local até a tabela 'vitrines' ser criada no Supabase
+    return StorageService.getVitrines().sort((a, b) => a.displayOrder - b.displayOrder);
   },
   createVitrine: async (v: Omit<Vitrine, 'id' | 'createdAt' | 'updatedAt'>): Promise<Vitrine> => {
-    return { ...v, id: 'tmp', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+    const created = StorageService.addVitrine(v);
+    return created;
   },
-  updateVitrine: async (id: string, v: Partial<Vitrine>): Promise<boolean> => {
-    return true;
+  updateVitrine: async (id: string, updates: Partial<Vitrine>): Promise<boolean> => {
+    const updated = StorageService.updateVitrine(id, updates);
+    return Boolean(updated);
   },
   deleteVitrine: async (id: string): Promise<boolean> => {
-    return true;
+    return StorageService.deleteVitrine(id);
   },
 
   // --------------------------------------------------------------------------

@@ -14,6 +14,8 @@ import {
   CashClosingRecord,
   PixConfig,
   PaymentProofRecord,
+  Vitrine,
+  CartItem,
 } from '../types';
 import {
   INITIAL_APPOINTMENTS,
@@ -30,6 +32,7 @@ import {
   INITIAL_CASH_CLOSINGS,
   INITIAL_PIX_CONFIG,
   INITIAL_PAYMENT_PROOFS,
+  INITIAL_VITRINES,
 } from '../data/initialData';
 
 const STORAGE_KEYS = {
@@ -47,6 +50,8 @@ const STORAGE_KEYS = {
   CASH_CLOSINGS: 'sbm_cash_closings_v1',
   PIX_CONFIG: 'sbm_pix_config_v1',
   PAYMENT_PROOFS: 'sbm_payment_proofs_v1',
+  VITRINES: 'sbm_vitrines_v1',
+  CART: 'sbm_cart_v1',
 };
 
 function safeGet<T>(key: string, fallback: T): T {
@@ -515,6 +520,47 @@ export const StorageService = {
 
     return current[index];
   },
+
+  // Vitrines (Múltiplas Vitrines)
+  getVitrines: (): Vitrine[] => safeGet(STORAGE_KEYS.VITRINES, INITIAL_VITRINES),
+  saveVitrines: (list: Vitrine[]) => safeSet(STORAGE_KEYS.VITRINES, list),
+  addVitrine: (vitrine: Omit<Vitrine, 'id' | 'createdAt' | 'updatedAt'>): Vitrine => {
+    const current = StorageService.getVitrines();
+    const now = new Date().toISOString();
+    const newVitrine: Vitrine = {
+      ...vitrine,
+      id: `vitrine-${Date.now()}`,
+      createdAt: now,
+      updatedAt: now,
+    };
+    const updated = [...current, newVitrine];
+    StorageService.saveVitrines(updated);
+    return newVitrine;
+  },
+  updateVitrine: (id: string, updates: Partial<Vitrine>): Vitrine | null => {
+    const current = StorageService.getVitrines();
+    const index = current.findIndex(v => v.id === id);
+    if (index === -1) return null;
+    current[index] = {
+      ...current[index],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    };
+    StorageService.saveVitrines(current);
+    return current[index];
+  },
+  deleteVitrine: (id: string): boolean => {
+    const current = StorageService.getVitrines();
+    const updated = current.filter(v => v.id !== id);
+    if (updated.length === current.length) return false;
+    StorageService.saveVitrines(updated);
+    return true;
+  },
+
+  // Shopping Cart
+  getCart: (): CartItem[] => safeGet(STORAGE_KEYS.CART, []),
+  saveCart: (items: CartItem[]) => safeSet(STORAGE_KEYS.CART, items),
+  clearCart: () => safeSet(STORAGE_KEYS.CART, []),
 
   // Reset to initial (for testing)
   resetAll: () => {

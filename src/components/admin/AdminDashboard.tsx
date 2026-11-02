@@ -315,7 +315,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           )}
 
           {activeModule === 'vitrines' && (
-            <VitrinesModule />
+            <VitrinesModule products={products} onRefreshData={onRefreshData} />
           )}
 
           {activeModule === 'vitrine' && (

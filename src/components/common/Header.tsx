@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, User, Scissors, LogOut } from 'lucide-react';
+import { Sparkles, User, Scissors, LogOut, ShoppingBag } from 'lucide-react';
 import { AppRole, PublicTab } from '../../types';
 
 interface HeaderProps {
@@ -12,6 +12,8 @@ interface HeaderProps {
   authUserName?: string | null;
   onOpenAuthView?: (mode?: 'login' | 'signup') => void;
   onLogout?: () => void;
+  cartItemCount?: number;
+  onOpenCart?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -22,6 +24,8 @@ export const Header: React.FC<HeaderProps> = ({
   authUserEmail,
   authUserName,
   onLogout,
+  cartItemCount = 0,
+  onOpenCart,
 }) => {
   return (
     <header className="sticky top-0 z-40 w-full bg-[#08080a]/95 backdrop-blur-md border-b border-white/[0.08]">
@@ -127,8 +131,24 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </nav>
 
-        {/* Zone 3: Essential Actions (Supabase User Profile if logged in) */}
+        {/* Zone 3: Essential Actions (Cart & Supabase User Profile) */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0 pr-12 sm:pr-16">
+          {/* Shopping Cart Trigger */}
+          {onOpenCart && (
+            <button
+              onClick={onOpenCart}
+              className="relative p-2.5 rounded-xl bg-[#14141c] hover:bg-[#d4af37] text-neutral-300 hover:text-black border border-white/10 hover:border-[#d4af37] transition-all cursor-pointer flex items-center justify-center"
+              title="Abrir Carrinho de Compras"
+            >
+              <ShoppingBag size={18} />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-[#d4af37] text-black text-[10px] font-mono font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#08080a] animate-in zoom-in duration-200">
+                  {cartItemCount}
+                </span>
+              )}
+            </button>
+          )}
+
           {authUserEmail && (
             <div className="hidden sm:flex items-center gap-2 bg-[#14141c] border border-[#d4af37]/30 rounded-xl px-3 py-1.5 text-xs">
               <div className="w-6 h-6 rounded-full bg-[#d4af37]/20 text-[#f3e5ab] flex items-center justify-center font-bold text-[10px]">
