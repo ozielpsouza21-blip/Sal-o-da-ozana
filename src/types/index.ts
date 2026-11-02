@@ -11,7 +11,7 @@ export type AdminModule =
   | 'profissionais' 
   | 'servicos' 
   | 'produtos' 
-  | 'vitrine' 
+  | 'vitrines'
   | 'conversas' 
   | 'personalizacao'
   | 'diagnostico'
@@ -67,6 +67,17 @@ export interface Service {
   featuredInVitrine?: boolean;
   active: boolean;
   displayOrder: number;
+}
+
+export interface Vitrine {
+  id: string;
+  name: string;
+  description?: string;
+  coverImageUrl?: string;
+  ativo: boolean;
+  displayOrder: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Product {

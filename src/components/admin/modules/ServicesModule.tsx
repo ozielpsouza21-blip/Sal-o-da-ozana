@@ -104,6 +104,7 @@ export const ServicesModule: React.FC<ServicesModuleProps> = ({
           popular: featuredInVitrine,
           featuredInVitrine,
           active: true,
+          displayOrder: 0,
         });
         setSuccessMessage('Novo procedimento cadastrado com sucesso!');
       }

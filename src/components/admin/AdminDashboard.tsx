@@ -48,6 +48,7 @@ import { ProfessionalsModule } from './modules/ProfessionalsModule';
 import { ServicesModule } from './modules/ServicesModule';
 import { ProductsModule } from './modules/ProductsModule';
 import { ShowcaseModule } from './modules/ShowcaseModule';
+import { VitrinesModule } from './modules/VitrinesModule';
 import { ConversationsModule } from './modules/ConversationsModule';
 import { CustomizationModule } from './modules/CustomizationModule';
 import { DiagnosticModule } from './modules/DiagnosticModule';
@@ -112,6 +113,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     { id: 'profissionais', label: 'Profissionais', icon: <Scissors size={18} /> },
     { id: 'servicos', label: 'Serviços', icon: <Sparkles size={18} /> },
     { id: 'produtos', label: 'Produtos', icon: <Package size={18} /> },
+    { id: 'vitrines', label: 'Vitrines', icon: <Store size={18} /> },
     { id: 'vitrine', label: 'Vitrine', icon: <Store size={18} /> },
     { id: 'conversas', label: 'Conversas', icon: <MessageSquare size={18} />, badge: 1 },
     { id: 'personalizacao', label: 'Personalização', icon: <Palette size={18} /> },
@@ -161,6 +163,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     'profissionais': 'Profissionais',
     'servicos': 'Serviços',
     'produtos': 'Produtos',
+    'vitrines': 'Vitrines',
     'vitrine': 'Vitrine',
     'conversas': 'Conversas',
     'personalizacao': 'Personalização',
@@ -309,6 +312,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               products={products}
               onRefreshData={onRefreshData}
             />
+          )}
+
+          {activeModule === 'vitrines' && (
+            <VitrinesModule />
           )}
 
           {activeModule === 'vitrine' && (

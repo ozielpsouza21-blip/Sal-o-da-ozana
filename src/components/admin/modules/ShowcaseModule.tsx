@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Eye, Plus, Trash2, Edit2, X, Save } from 'lucide-react';
+import { Eye, Plus, Trash2, Edit2, X, Save, Upload } from 'lucide-react';
 import { Product, Service } from '../../../types';
 import { Card } from '../../common/Card';
 import { Button } from '../../common/Button';
-import { StorageService } from '../../../services/storage';
+import { SupabaseDataService } from '../../../services/supabaseDataService';
 
 interface ShowcaseModuleProps {
   services: Service[];
@@ -36,30 +36,33 @@ export const ShowcaseModule: React.FC<ShowcaseModuleProps> = ({
     setIsAdding(false);
   };
 
-  const handleDelete = (item: Service | Product) => {
+  const handleDelete = async (item: Service | Product) => {
     if (confirm('Tem certeza que deseja excluir este item?')) {
-      if ('durationMinutes' in item) {
-        StorageService.deleteService(item.id);
-      } else {
-        StorageService.saveProducts(products.filter(p => p.id !== item.id));
+      try {
+        if ('durationMinutes' in item) await SupabaseDataService.deleteService(item.id);
+        else await SupabaseDataService.deleteProduct(item.id);
+        onRefreshData();
+      } catch (e: any) {
+        alert(`Erro ao excluir: ${e.message}`);
       }
-      onRefreshData();
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingItem) return;
-    
-    if (isAdding) {
-      if (activeTab === 'services') StorageService.addService(editingItem as Omit<Service, 'id'>);
-      else StorageService.saveProducts([editingItem as Product, ...products]);
-    } else {
-      if ('durationMinutes' in editingItem) StorageService.updateService(editingItem.id!, editingItem as Partial<Service>);
-      else StorageService.saveProducts(products.map(p => p.id === editingItem.id ? { ...p, ...editingItem } : p));
+    try {
+      if (isAdding) {
+        if (activeTab === 'services') await SupabaseDataService.createService(editingItem as Omit<Service, 'id'>);
+        else await SupabaseDataService.createProduct(editingItem as Omit<Product, 'id'>);
+      } else {
+        if ('durationMinutes' in editingItem) await SupabaseDataService.updateService(editingItem.id!, editingItem as Partial<Service>);
+        else await SupabaseDataService.updateProduct(editingItem.id!, editingItem as Partial<Product>);
+      }
+      handleCancel();
+      onRefreshData();
+    } catch (e: any) {
+      alert(`Erro ao salvar: ${e.message}`);
     }
-    
-    handleCancel();
-    onRefreshData();
   };
 
   const renderItem = (item: Service | Product) => (
@@ -102,9 +105,9 @@ export const ShowcaseModule: React.FC<ShowcaseModuleProps> = ({
           <Card className="w-full max-w-lg space-y-4">
             <h3 className="text-lg font-semibold text-white">{isAdding ? 'Novo Item' : 'Editar Item'}</h3>
             <input type="text" placeholder="Nome" value={editingItem.name || ''} onChange={e => setEditingItem({...editingItem, name: e.target.value})} className="w-full bg-[#181822] p-2 rounded text-white" />
-            <textarea placeholder="Descrição" value={editingItem.description || ''} onChange={e => setEditingItem({...editingItem, description: e.target.value})} className="w-full bg-[#181822] p-2 rounded text-white" />
+            <textarea placeholder="Descrição" value={(editingItem as Service).description || ''} onChange={e => setEditingItem({...editingItem, description: e.target.value})} className="w-full bg-[#181822] p-2 rounded text-white" />
             <div className="flex gap-2">
-              <input type="number" placeholder="Preço" value={('priceBRL' in editingItem ? editingItem.priceBRL : editingItem.salePriceBRL) || 0} onChange={e => setEditingItem({...editingItem, [activeTab === 'services' ? 'priceBRL' : 'salePriceBRL']: parseFloat(e.target.value)})} className="w-full bg-[#181822] p-2 rounded text-white" />
+              <input type="number" placeholder="Preço" value={(('priceBRL' in editingItem! ? (editingItem as Service).priceBRL : (editingItem as Product).salePriceBRL) || 0)} onChange={e => setEditingItem({...editingItem, [activeTab === 'services' ? 'priceBRL' : 'salePriceBRL']: parseFloat(e.target.value)})} className="w-full bg-[#181822] p-2 rounded text-white" />
               <input type="number" placeholder="Preço Promo" value={editingItem.promotionalPriceBRL || ''} onChange={e => setEditingItem({...editingItem, promotionalPriceBRL: parseFloat(e.target.value)})} className="w-full bg-[#181822] p-2 rounded text-white" />
             </div>
             <input type="number" placeholder="Ordem" value={editingItem.displayOrder || 0} onChange={e => setEditingItem({...editingItem, displayOrder: parseInt(e.target.value)})} className="w-full bg-[#181822] p-2 rounded text-white" />

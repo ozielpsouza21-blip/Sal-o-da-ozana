@@ -57,6 +57,8 @@ export const ProductsModule: React.FC<ProductsModuleProps> = ({
       image: '/src/assets/images/service_luxury_haircare_1793577408044.jpg',
       sku: sku.trim() || `SBM-${Date.now().toString().slice(-4)}`,
       featuredInVitrine: true,
+      active: true,
+      displayOrder: 0,
     });
 
     onRefreshData();

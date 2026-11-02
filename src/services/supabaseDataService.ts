@@ -54,6 +54,7 @@ export const SupabaseDataService = {
         popular: Boolean(item.popular),
         featuredInVitrine: Boolean(item.featured_in_vitrine ?? item.featuredInVitrine ?? true),
         active: Boolean(item.ativo ?? item.active ?? true),
+        displayOrder: Number(item.display_order ?? item.displayOrder ?? 0),
       }));
     } catch {
       return StorageService.getServices();
@@ -148,6 +149,22 @@ export const SupabaseDataService = {
       StorageService.deleteService(id);
       return true;
     }
+  },
+
+  // --------------------------------------------------------------------------
+  // 1.5 VITRINES (PLACEHOLDER)
+  // --------------------------------------------------------------------------
+  fetchVitrines: async (): Promise<Vitrine[]> => {
+    return []; // Placeholder
+  },
+  createVitrine: async (v: Omit<Vitrine, 'id' | 'createdAt' | 'updatedAt'>): Promise<Vitrine> => {
+    return { ...v, id: 'tmp', createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
+  },
+  updateVitrine: async (id: string, v: Partial<Vitrine>): Promise<boolean> => {
+    return true;
+  },
+  deleteVitrine: async (id: string): Promise<boolean> => {
+    return true;
   },
 
   // --------------------------------------------------------------------------
@@ -367,6 +384,8 @@ export const SupabaseDataService = {
         minStockAlert: Number(item.min_stock_alert || 5),
         image: item.image_url || item.image || '',
         featuredInVitrine: Boolean(item.featured_in_vitrine ?? true),
+        active: Boolean(item.ativo ?? true),
+        displayOrder: Number(item.display_order ?? 0),
       }));
     } catch {
       return StorageService.getProducts();
@@ -391,7 +410,7 @@ export const SupabaseDataService = {
           min_stock_alert: product.minStockAlert,
           image_url: product.image,
           featured_in_vitrine: product.featuredInVitrine ?? true,
-          ativo: true,
+          ativo: product.active ?? true,
         })
         .select()
         .single();
@@ -403,6 +422,50 @@ export const SupabaseDataService = {
       console.warn('Persistência remota de produto falhou, mantido localmente:', e);
     }
     return local;
+  },
+
+  updateProduct: async (id: string, updates: Partial<Product>): Promise<boolean> => {
+    StorageService.saveProducts(StorageService.getProducts().map(p => p.id === id ? {...p, ...updates} : p));
+    if (!isSupabaseConfigured() || !supabase) return true;
+
+    try {
+      const payload: any = {};
+      if (updates.name !== undefined) payload.name = updates.name;
+      if (updates.salePriceBRL !== undefined) payload.sale_price_brl = updates.salePriceBRL;
+      if (updates.image !== undefined) payload.image_url = updates.image;
+      if (updates.featuredInVitrine !== undefined) payload.featured_in_vitrine = updates.featuredInVitrine;
+      if (updates.active !== undefined) payload.ativo = updates.active;
+      payload.updated_at = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('produtos')
+        .update(payload)
+        .eq('id', id);
+
+      if (error) throw new Error(error.message);
+      return true;
+    } catch (e) {
+      console.warn('Atualização remota de produto falhou:', e);
+      throw e;
+    }
+  },
+
+  deleteProduct: async (id: string): Promise<boolean> => {
+    StorageService.saveProducts(StorageService.getProducts().filter(p => p.id !== id));
+    if (!isSupabaseConfigured() || !supabase) return true;
+
+    try {
+      const { error } = await supabase
+        .from('produtos')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw new Error(error.message);
+      return true;
+    } catch (e) {
+      console.warn('Exclusão remota de produto falhou:', e);
+      throw e;
+    }
   },
 
   // --------------------------------------------------------------------------
