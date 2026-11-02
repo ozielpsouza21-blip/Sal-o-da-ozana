@@ -251,7 +251,13 @@ export const StorageService = {
   },
 
   // Theme
-  getTheme: (): ThemeConfig => safeGet(STORAGE_KEYS.THEME, INITIAL_THEME),
+  getTheme: (): ThemeConfig => {
+    const th = safeGet(STORAGE_KEYS.THEME, INITIAL_THEME);
+    return {
+      ...th,
+      show3dParticles: th.show3dParticles !== false,
+    };
+  },
   saveTheme: (theme: ThemeConfig) => {
     safeSet(STORAGE_KEYS.THEME, theme);
     // Apply CSS variables to root

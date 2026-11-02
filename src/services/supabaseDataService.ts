@@ -598,7 +598,7 @@ export const SupabaseDataService = {
         instagramHandle: data.instagram_handle || '',
         address: data.address || '',
         openingHours: data.opening_hours || '',
-        show3dParticles: Boolean(data.show_3d_particles ?? true),
+        show3dParticles: data.show_3d_particles !== undefined && data.show_3d_particles !== null ? Boolean(data.show_3d_particles) : true,
       };
     } catch {
       return StorageService.getTheme();
