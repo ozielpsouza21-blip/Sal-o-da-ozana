@@ -33,10 +33,29 @@ import { AdminDashboard } from './components/admin/AdminDashboard';
 import { ClientPortal } from './components/client/ClientPortal';
 import { ProfessionalPortal } from './components/professional/ProfessionalPortal';
 import { Calendar, CheckCircle2, Globe, User, Scissors, ShieldCheck, Sparkles } from 'lucide-react';
+import { AuthView } from './components/common/AuthView';
+import { ClientAuthModal } from './components/common/ClientAuthModal';
+import { ProfessionalAuthModal } from './components/common/ProfessionalAuthModal';
+import { FixedFooterNav } from './components/common/FixedFooterNav';
+import { ExternalSideMenu } from './components/common/ExternalSideMenu';
 
 export default function App() {
   const [role, setRole] = useState<AppRole>('visitor');
   const [publicTab, setPublicTab] = useState<PublicTab>('home');
+
+  // Supabase Auth State
+  const [authUserEmail, setAuthUserEmail] = useState<string | null>(null);
+  const [authUserName, setAuthUserName] = useState<string | null>(null);
+  const [isAuthViewOpen, setIsAuthViewOpen] = useState(false);
+  const [authViewInitialMode, setAuthViewInitialMode] = useState<'login' | 'signup'>('login');
+  const [targetRoleLabel, setTargetRoleLabel] = useState('Painel do Atelier');
+  const [logoutErrorMessage, setLogoutErrorMessage] = useState<string | null>(null);
+
+  // Client & Professional Auth Modal States
+  const [isClientAuthOpen, setIsClientAuthOpen] = useState(false);
+  const [clientAuthInitialMode, setClientAuthInitialMode] = useState<'login' | 'signup' | 'forgot'>('login');
+  const [isProAuthOpen, setIsProAuthOpen] = useState(false);
+  const [proAuthInitialMode, setProAuthInitialMode] = useState<'login' | 'forgot'>('login');
 
   // Core Data loaded from persistent storage
   const [services, setServices] = useState<Service[]>([]);
@@ -100,19 +119,37 @@ export default function App() {
     if (supabase) {
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) {
+          setAuthUserEmail(session.user.email || null);
+          setAuthUserName(session.user.user_metadata?.name || null);
           SupabaseDataService.fetchUserProfile(session.user.id).then((profile) => {
             if (profile?.role) {
               setRole(profile.role as AppRole);
+            } else {
+              setRole('client');
+            }
+            if (profile?.name) {
+              setAuthUserName(profile.name);
             }
           });
         }
       });
 
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-        if (session?.user) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT' || !session?.user) {
+          setAuthUserEmail(null);
+          setAuthUserName(null);
+          setRole('visitor');
+        } else if (session?.user) {
+          setAuthUserEmail(session.user.email || null);
+          setAuthUserName(session.user.user_metadata?.name || null);
           SupabaseDataService.fetchUserProfile(session.user.id).then((profile) => {
             if (profile?.role) {
               setRole(profile.role as AppRole);
+            } else {
+              setRole('client');
+            }
+            if (profile?.name) {
+              setAuthUserName(profile.name);
             }
           });
         }
@@ -123,6 +160,84 @@ export default function App() {
       };
     }
   }, []);
+
+  const handleLogout = async () => {
+    setLogoutErrorMessage(null);
+    try {
+      if (supabase) {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error('Erro ao realizar logout no Supabase:', error.message);
+          setLogoutErrorMessage(`Não foi possível encerrar a sessão: ${error.message}`);
+          return;
+        }
+      }
+    } catch (err: any) {
+      console.error('Exceção ao encerrar sessão:', err?.message || err);
+      setLogoutErrorMessage('Ocorreu uma falha ao conectar com o servidor para encerrar a sessão. Tente novamente.');
+      return;
+    }
+
+    // Limpa estado em memória e retorna para a tela pública com login pronto
+    setAuthUserEmail(null);
+    setAuthUserName(null);
+    setRole('visitor');
+    setIsAuthViewOpen(true);
+    setAuthViewInitialMode('login');
+  };
+
+  const handleSelectRole = (newRole: AppRole) => {
+    if (newRole === 'visitor') {
+      setRole('visitor');
+      setIsAuthViewOpen(false);
+      setIsClientAuthOpen(false);
+      setIsProAuthOpen(false);
+      return;
+    }
+
+    if (newRole === 'client') {
+      if (!authUserEmail) {
+        setClientAuthInitialMode('login');
+        setIsClientAuthOpen(true);
+        return;
+      }
+      setRole('client');
+      setIsClientAuthOpen(false);
+      return;
+    }
+
+    if (newRole === 'professional') {
+      if (!authUserEmail) {
+        setProAuthInitialMode('login');
+        setIsProAuthOpen(true);
+        return;
+      }
+      setRole('professional');
+      setIsProAuthOpen(false);
+      return;
+    }
+
+    if (newRole === 'admin') {
+      if (!authUserEmail) {
+        setAuthViewInitialMode('login');
+        setTargetRoleLabel('Painel Administrativo do Atelier');
+        setIsAuthViewOpen(true);
+        return;
+      }
+      setRole('admin');
+      setIsAuthViewOpen(false);
+      return;
+    }
+
+    setRole(newRole);
+    setIsAuthViewOpen(false);
+  };
+
+  const handleOpenAuthView = (mode: 'login' | 'signup' = 'login') => {
+    setAuthViewInitialMode(mode);
+    setTargetRoleLabel('Painel do Atelier');
+    setIsAuthViewOpen(true);
+  };
 
   const handleOpenBooking = (serviceId?: string, professionalId?: string) => {
     setBookingServiceId(serviceId || services[0]?.id || '');
@@ -165,130 +280,151 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#08080a] text-neutral-100 flex flex-col font-sans selection:bg-[#d4af37]/30 selection:text-[#f3e5ab]">
-      {/* Top Global Environment Selector Bar - Desktop Only */}
-      <div className="hidden lg:flex bg-[#0b0b0f] border-b border-[#d4af37]/30 px-6 py-2 items-center justify-between text-xs gap-2 z-50">
-        <div className="flex items-center gap-2 font-serif text-[#f3e5ab] font-semibold">
-          <Sparkles size={14} className="text-[#d4af37]" />
-          <span className="tracking-wide">Sra. Bela Mulher Atelier</span>
-          <span className="text-[11px] font-sans font-normal text-neutral-400 hidden md:inline">
-            · Alternar Ambiente de Acesso:
-          </span>
-        </div>
+    <div className="min-h-screen bg-[#08080a] text-neutral-100 flex flex-col font-sans selection:bg-[#d4af37]/30 selection:text-[#f3e5ab] pb-24">
+      {/* External Side Menu (PWA & ADM access) */}
+      <ExternalSideMenu
+        onOpenAdmin={() => handleSelectRole('admin')}
+      />
 
-        <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap">
-          <button
-            onClick={() => setRole('visitor')}
-            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
-              role === 'visitor'
-                ? 'bg-[#d4af37] text-black font-semibold shadow-sm'
-                : 'text-neutral-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Globe size={12} />
-            <span>Página Pública</span>
-          </button>
-
-          <button
-            onClick={() => setRole('client')}
-            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
-              role === 'client'
-                ? 'bg-[#d4af37] text-black font-semibold shadow-sm'
-                : 'text-neutral-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <User size={12} />
-            <span>Área da Cliente</span>
-          </button>
-
-          <button
-            onClick={() => setRole('professional')}
-            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
-              role === 'professional'
-                ? 'bg-[#d4af37] text-black font-semibold shadow-sm'
-                : 'text-neutral-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <Scissors size={12} />
-            <span>Área do Profissional</span>
-          </button>
-
-          <button
-            onClick={() => setRole('admin')}
-            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
-              role === 'admin'
-                ? 'bg-[#d4af37] text-black font-semibold shadow-sm'
-                : 'text-neutral-300 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <ShieldCheck size={12} />
-            <span>Painel Admin (11 Módulos)</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Role View Router */}
-      {role === 'visitor' && (
+      {/* Fixed Footer Navigation Bar (Início, Vitrine, Cliente, Profissional, Chat) */}
+      <FixedFooterNav
+        currentRole={role}
+        activePublicTab={publicTab}
+        onSelectRole={newRole => setRole(newRole)}
+        onSelectPublicTab={tab => setPublicTab(tab)}
+        onOpenClientAuth={() => {
+          setClientAuthInitialMode('login');
+          setIsClientAuthOpen(true);
+        }}
+        onOpenProAuth={() => {
+          setProAuthInitialMode('login');
+          setIsProAuthOpen(true);
+        }}
+        onOpenChat={() => {
+          // Trigger floating chat click if available or scroll/focus
+          const chatBtn = document.querySelector('[aria-label="Abrir chat do concierge"]') as HTMLButtonElement;
+          if (chatBtn) chatBtn.click();
+        }}
+        hasAuthUser={!!authUserEmail}
+      />
+      {/* Real Supabase Auth View when Auth mode is triggered */}
+      {isAuthViewOpen ? (
         <>
           <Header
             currentRole={role}
-            onSelectRole={newRole => setRole(newRole)}
+            onSelectRole={handleSelectRole}
             activePublicTab={publicTab}
             onSelectPublicTab={tab => setPublicTab(tab)}
             onOpenBookingModal={() => handleOpenBooking()}
+            authUserEmail={authUserEmail}
+            authUserName={authUserName}
+            onOpenAuthView={handleOpenAuthView}
+            onLogout={handleLogout}
           />
-          <PublicHomePage
-            services={services}
-            products={products}
-            professionals={professionals}
-            activeTab={publicTab}
-            onSelectTab={tab => setPublicTab(tab)}
-            onSelectRole={newRole => setRole(newRole)}
-            onOpenBookingModal={handleOpenBooking}
-            show3dParticles={themeConfig.show3dParticles}
+          <AuthView
+            initialMode={authViewInitialMode}
+            targetRoleLabel={targetRoleLabel}
+            onSuccess={(newRole, email, name) => {
+              setRole(newRole);
+              setAuthUserEmail(email);
+              setAuthUserName(name || null);
+              setIsAuthViewOpen(false);
+            }}
+            onCancel={() => {
+              setIsAuthViewOpen(false);
+            }}
           />
+        </>
+      ) : (
+        <>
+          {/* Role View Router */}
+          {role === 'visitor' && (
+            <>
+              <Header
+                currentRole={role}
+                onSelectRole={handleSelectRole}
+                activePublicTab={publicTab}
+                onSelectPublicTab={tab => setPublicTab(tab)}
+                onOpenBookingModal={() => handleOpenBooking()}
+                authUserEmail={authUserEmail}
+                authUserName={authUserName}
+                onOpenAuthView={handleOpenAuthView}
+                onLogout={handleLogout}
+              />
+              <PublicHomePage
+                services={services}
+                products={products}
+                professionals={professionals}
+                activeTab={publicTab}
+                onSelectTab={tab => setPublicTab(tab)}
+                onSelectRole={handleSelectRole}
+                onOpenBookingModal={handleOpenBooking}
+                show3dParticles={themeConfig.show3dParticles}
+              />
+            </>
+          )}
+
+          {role === 'admin' && (
+            <AdminDashboard
+              services={services}
+              professionals={professionals}
+              clients={clients}
+              products={products}
+              appointments={appointments}
+              cashStatus={cashStatus}
+              transactions={transactions}
+              conversations={conversations}
+              themeConfig={themeConfig}
+              onRefreshData={loadAllData}
+              onBackToPublic={() => setRole('visitor')}
+              onSwitchRole={newRole => setRole(newRole)}
+              onLogout={handleLogout}
+            />
+          )}
+
+          {role === 'client' && activeClient && (
+            <ClientPortal
+              currentClient={activeClient}
+              clients={clients}
+              onSelectClient={c => setActiveClient(c)}
+              services={services}
+              professionals={professionals}
+              appointments={appointments}
+              onRefreshData={loadAllData}
+              onBackToPublic={() => setRole('visitor')}
+            />
+          )}
+
+          {role === 'professional' && activePro && (
+            <ProfessionalPortal
+              currentPro={activePro}
+              professionals={professionals}
+              onSelectPro={p => setActivePro(p)}
+              appointments={appointments}
+              onRefreshData={loadAllData}
+              onBackToPublic={() => setRole('visitor')}
+            />
+          )}
         </>
       )}
 
-      {role === 'admin' && (
-        <AdminDashboard
-          services={services}
-          professionals={professionals}
-          clients={clients}
-          products={products}
-          appointments={appointments}
-          cashStatus={cashStatus}
-          transactions={transactions}
-          conversations={conversations}
-          themeConfig={themeConfig}
-          onRefreshData={loadAllData}
-          onBackToPublic={() => setRole('visitor')}
-          onSwitchRole={newRole => setRole(newRole)}
-        />
-      )}
-
-      {role === 'client' && activeClient && (
-        <ClientPortal
-          currentClient={activeClient}
-          clients={clients}
-          onSelectClient={c => setActiveClient(c)}
-          services={services}
-          professionals={professionals}
-          appointments={appointments}
-          onRefreshData={loadAllData}
-          onBackToPublic={() => setRole('visitor')}
-        />
-      )}
-
-      {role === 'professional' && activePro && (
-        <ProfessionalPortal
-          currentPro={activePro}
-          professionals={professionals}
-          onSelectPro={p => setActivePro(p)}
-          appointments={appointments}
-          onRefreshData={loadAllData}
-          onBackToPublic={() => setRole('visitor')}
-        />
+      {/* Logout Error Modal */}
+      {logoutErrorMessage && (
+        <Modal
+          isOpen={true}
+          onClose={() => setLogoutErrorMessage(null)}
+          title="Aviso de Encerramento de Sessão"
+          subtitle="Aviso do Servidor de Autenticação"
+          footer={
+            <Button onClick={() => setLogoutErrorMessage(null)}>
+              Entendido
+            </Button>
+          }
+        >
+          <div className="py-4 text-xs text-red-300 bg-red-950/40 p-4 rounded-xl border border-red-500/30">
+            {logoutErrorMessage}
+          </div>
+        </Modal>
       )}
 
       {/* Reusable Floating Concierge Chat (Public & Portals) */}
@@ -436,6 +572,32 @@ export default function App() {
           )}
         </Modal>
       )}
+
+      {/* Client Auth Modal */}
+      <ClientAuthModal
+        isOpen={isClientAuthOpen}
+        onClose={() => setIsClientAuthOpen(false)}
+        initialMode={clientAuthInitialMode}
+        onSuccess={(newRole, email, name) => {
+          setRole(newRole);
+          setAuthUserEmail(email);
+          setAuthUserName(name || null);
+          setIsClientAuthOpen(false);
+        }}
+      />
+
+      {/* Professional Auth Modal */}
+      <ProfessionalAuthModal
+        isOpen={isProAuthOpen}
+        onClose={() => setIsProAuthOpen(false)}
+        initialMode={proAuthInitialMode}
+        onSuccess={(newRole, email, name) => {
+          setRole(newRole);
+          setAuthUserEmail(email);
+          setAuthUserName(name || null);
+          setIsProAuthOpen(false);
+        }}
+      />
     </div>
   );
 }

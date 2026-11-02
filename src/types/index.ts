@@ -13,7 +13,8 @@ export type AdminModule =
   | 'produtos' 
   | 'vitrine' 
   | 'conversas' 
-  | 'personalizacao';
+  | 'personalizacao'
+  | 'diagnostico';
 
 export type ClientTab = 'agendamentos' | 'novo' | 'historico' | 'perfil' | 'vip' | 'chat';
 

@@ -16,6 +16,8 @@ import {
   Menu,
   ShieldCheck,
   CheckCircle2,
+  LogOut,
+  Database,
 } from 'lucide-react';
 import {
   AdminModule,
@@ -47,6 +49,7 @@ import { ProductsModule } from './modules/ProductsModule';
 import { ShowcaseModule } from './modules/ShowcaseModule';
 import { ConversationsModule } from './modules/ConversationsModule';
 import { CustomizationModule } from './modules/CustomizationModule';
+import { DiagnosticModule } from './modules/DiagnosticModule';
 
 interface AdminDashboardProps {
   services: Service[];
@@ -61,6 +64,7 @@ interface AdminDashboardProps {
   onRefreshData: () => void;
   onBackToPublic: () => void;
   onSwitchRole: (role: AppRole) => void;
+  onLogout?: () => void;
 }
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({
@@ -76,6 +80,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onRefreshData,
   onBackToPublic,
   onSwitchRole,
+  onLogout,
 }) => {
   const [activeModule, setActiveModule] = useState<AdminModule>('visao-geral');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -102,6 +107,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     { id: 'vitrine', label: 'Vitrine', icon: <Store size={18} /> },
     { id: 'conversas', label: 'Conversas', icon: <MessageSquare size={18} />, badge: 1 },
     { id: 'personalizacao', label: 'Personalização', icon: <Palette size={18} /> },
+    { id: 'diagnostico', label: 'Diagnóstico de Dados', icon: <Database size={18} /> },
   ];
 
   const handleUpdateAptStatus = (id: string, status: any) => {
@@ -187,6 +193,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               <ArrowLeft size={14} />
               <span>Ver Vitrine Pública</span>
             </button>
+
+            {onLogout && (
+              <button
+                onClick={onLogout}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 transition-colors cursor-pointer"
+                title="Sair do Sistema (Supabase SignOut)"
+              >
+                <LogOut size={14} />
+                <span>Sair</span>
+              </button>
+            )}
 
             <Button
               size="sm"
@@ -290,6 +307,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               themeConfig={themeConfig}
               onRefreshData={onRefreshData}
             />
+          )}
+
+          {activeModule === 'diagnostico' && (
+            <DiagnosticModule />
           )}
         </main>
       </div>

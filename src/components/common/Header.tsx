@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Menu, X, Shield, User, Scissors, Calendar, Home, ShoppingBag, Layers } from 'lucide-react';
+import { Sparkles, Menu, X, Shield, User, Scissors, Calendar, Home, ShoppingBag, Layers, LogIn, LogOut } from 'lucide-react';
 import { AppRole, PublicTab } from '../../types';
 
 interface HeaderProps {
@@ -8,6 +8,10 @@ interface HeaderProps {
   activePublicTab?: PublicTab;
   onSelectPublicTab?: (tab: PublicTab) => void;
   onOpenBookingModal: () => void;
+  authUserEmail?: string | null;
+  authUserName?: string | null;
+  onOpenAuthView?: (mode?: 'login' | 'signup') => void;
+  onLogout?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,6 +20,10 @@ export const Header: React.FC<HeaderProps> = ({
   activePublicTab = 'home',
   onSelectPublicTab,
   onOpenBookingModal,
+  authUserEmail,
+  authUserName,
+  onOpenAuthView,
+  onLogout,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -114,8 +122,40 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </nav>
 
-        {/* Zone 3: Essential Actions (Logo, Menu ☰ & Agendar Horário) */}
+        {/* Zone 3: Essential Actions (Supabase Auth Login/User + Agendar Horário) */}
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+          {authUserEmail ? (
+            <div className="hidden sm:flex items-center gap-2 bg-[#14141c] border border-[#d4af37]/30 rounded-xl px-3 py-1.5 text-xs">
+              <div className="w-6 h-6 rounded-full bg-[#d4af37]/20 text-[#f3e5ab] flex items-center justify-center font-bold text-[10px]">
+                {(authUserName || authUserEmail).charAt(0).toUpperCase()}
+              </div>
+              <div className="flex flex-col text-left">
+                <span className="text-white font-medium truncate max-w-[120px]">
+                  {authUserName || authUserEmail.split('@')[0]}
+                </span>
+                <span className="text-[10px] text-[#d4af37] uppercase font-semibold">
+                  {currentRole}
+                </span>
+              </div>
+              <button
+                onClick={onLogout}
+                className="ml-1 p-1 text-neutral-400 hover:text-red-400 transition-colors cursor-pointer"
+                title="Sair da Conta (Supabase SignOut)"
+              >
+                <LogOut size={14} />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => onOpenAuthView?.('login')}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg bg-[#15151c] text-neutral-200 border border-white/10 hover:border-[#d4af37]/50 hover:text-[#f3e5ab] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              title="Entrar com e-mail e senha pelo Supabase Auth"
+            >
+              <LogIn size={14} className="text-[#d4af37]" />
+              <span>Entrar / Login</span>
+            </button>
+          )}
+
           <button
             onClick={() => onSelectRole('admin')}
             className={`hidden lg:flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors whitespace-nowrap shrink-0 ${
