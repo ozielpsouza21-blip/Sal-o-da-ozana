@@ -30,7 +30,7 @@ import { PublicHomePage } from './components/public/PublicHomePage';
 import { AdminDashboard } from './components/admin/AdminDashboard';
 import { ClientPortal } from './components/client/ClientPortal';
 import { ProfessionalPortal } from './components/professional/ProfessionalPortal';
-import { Calendar, CheckCircle2 } from 'lucide-react';
+import { Calendar, CheckCircle2, Globe, User, Scissors, ShieldCheck, Sparkles } from 'lucide-react';
 
 export default function App() {
   const [role, setRole] = useState<AppRole>('visitor');
@@ -136,27 +136,88 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#08080a] text-neutral-100 flex flex-col font-sans selection:bg-[#d4af37]/30 selection:text-[#f3e5ab]">
-      {/* Top Header persistent for clean, unified navigation across all roles */}
-      <Header
-        currentRole={role}
-        onSelectRole={newRole => setRole(newRole)}
-        activePublicTab={publicTab}
-        onSelectPublicTab={tab => setPublicTab(tab)}
-        onOpenBookingModal={() => handleOpenBooking()}
-      />
+      {/* Top Global Environment Selector Bar */}
+      <div className="bg-[#0b0b0f] border-b border-[#d4af37]/30 px-3 sm:px-6 py-2 flex flex-wrap items-center justify-between text-xs gap-2 z-50">
+        <div className="flex items-center gap-2 font-serif text-[#f3e5ab] font-semibold">
+          <Sparkles size={14} className="text-[#d4af37]" />
+          <span className="tracking-wide">Sra. Bela Mulher Atelier</span>
+          <span className="text-[11px] font-sans font-normal text-neutral-400 hidden md:inline">
+            · Alternar Ambiente de Acesso:
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap">
+          <button
+            onClick={() => setRole('visitor')}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+              role === 'visitor'
+                ? 'bg-[#d4af37] text-black font-semibold shadow-sm'
+                : 'text-neutral-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Globe size={12} />
+            <span>Página Pública</span>
+          </button>
+
+          <button
+            onClick={() => setRole('client')}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+              role === 'client'
+                ? 'bg-[#d4af37] text-black font-semibold shadow-sm'
+                : 'text-neutral-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <User size={12} />
+            <span>Área da Cliente</span>
+          </button>
+
+          <button
+            onClick={() => setRole('professional')}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+              role === 'professional'
+                ? 'bg-[#d4af37] text-black font-semibold shadow-sm'
+                : 'text-neutral-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <Scissors size={12} />
+            <span>Área do Profissional</span>
+          </button>
+
+          <button
+            onClick={() => setRole('admin')}
+            className={`px-2.5 py-1 rounded-md text-[11px] font-medium transition-colors flex items-center gap-1.5 cursor-pointer ${
+              role === 'admin'
+                ? 'bg-[#d4af37] text-black font-semibold shadow-sm'
+                : 'text-neutral-300 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <ShieldCheck size={12} />
+            <span>Painel Admin (11 Módulos)</span>
+          </button>
+        </div>
+      </div>
 
       {/* Role View Router */}
       {role === 'visitor' && (
-        <PublicHomePage
-          services={services}
-          products={products}
-          professionals={professionals}
-          activeTab={publicTab}
-          onSelectTab={tab => setPublicTab(tab)}
-          onSelectRole={newRole => setRole(newRole)}
-          onOpenBookingModal={handleOpenBooking}
-          show3dParticles={themeConfig.show3dParticles}
-        />
+        <>
+          <Header
+            currentRole={role}
+            onSelectRole={newRole => setRole(newRole)}
+            activePublicTab={publicTab}
+            onSelectPublicTab={tab => setPublicTab(tab)}
+            onOpenBookingModal={() => handleOpenBooking()}
+          />
+          <PublicHomePage
+            services={services}
+            products={products}
+            professionals={professionals}
+            activeTab={publicTab}
+            onSelectTab={tab => setPublicTab(tab)}
+            onSelectRole={newRole => setRole(newRole)}
+            onOpenBookingModal={handleOpenBooking}
+            show3dParticles={themeConfig.show3dParticles}
+          />
+        </>
       )}
 
       {role === 'admin' && (
