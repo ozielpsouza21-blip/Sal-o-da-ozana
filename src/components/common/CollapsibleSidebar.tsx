@@ -5,6 +5,7 @@ import {
   LogOut,
   Sparkles,
   X,
+  Globe,
 } from 'lucide-react';
 import { AppRole } from '../../types';
 
@@ -27,6 +28,8 @@ interface CollapsibleSidebarProps {
   onCloseMobile: () => void;
   currentRole: AppRole;
   onSwitchRole: (role: AppRole) => void;
+  onBackToPublic?: () => void;
+  onLogout?: () => void;
 }
 
 export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
@@ -41,6 +44,8 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
   onCloseMobile,
   currentRole,
   onSwitchRole,
+  onBackToPublic,
+  onLogout,
 }) => {
   const sidebarWidthClass = isCollapsed ? 'w-20' : 'w-64';
 
@@ -155,15 +160,30 @@ export const CollapsibleSidebar: React.FC<CollapsibleSidebarProps> = ({
           })}
         </nav>
 
-        {/* Footer Role Switcher / Exit */}
-        <div className="p-3 border-t border-white/[0.08] bg-[#0b0b0e]">
+        {/* Footer Buttons: Tela Inicial & Sair stacked vertically */}
+        <div className="p-3 border-t border-white/[0.08] bg-[#0b0b0e] space-y-2">
           <button
-            onClick={() => onSwitchRole('visitor')}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-neutral-400 hover:text-white hover:bg-white/[0.05] transition-colors`}
-            title="Sair para Loja Pública"
+            onClick={() => {
+              if (onBackToPublic) onBackToPublic();
+              else onSwitchRole('visitor');
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-neutral-300 hover:text-white hover:bg-white/[0.05] transition-colors"
+            title="Ir para a Tela Inicial / Vitrine Pública"
           >
-            <LogOut size={16} className="shrink-0 text-neutral-400" />
-            {!isCollapsed && <span>Sair / Vitrine Pública</span>}
+            <Globe size={16} className="shrink-0 text-[#d4af37]" />
+            {!isCollapsed && <span>Tela Inicial</span>}
+          </button>
+
+          <button
+            onClick={() => {
+              if (onLogout) onLogout();
+              else onSwitchRole('visitor');
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 transition-colors"
+            title="Sair da Conta (Encerrar Sessão)"
+          >
+            <LogOut size={16} className="shrink-0 text-red-400" />
+            {!isCollapsed && <span>Sair</span>}
           </button>
         </div>
       </aside>

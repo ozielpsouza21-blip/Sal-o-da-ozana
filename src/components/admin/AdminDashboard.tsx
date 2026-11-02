@@ -99,7 +99,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     { id: 'visao-geral', label: 'Visão Geral', icon: <LayoutDashboard size={18} /> },
     { id: 'financeiro', label: 'Financeiro', icon: <DollarSign size={18} /> },
     { id: 'caixa', label: 'Caixa', icon: <Receipt size={18} />, badge: cashStatus.isOpen ? 'Aberto' : 'Fechado' },
-    { id: 'agenda', label: 'Agenda', icon: <Calendar size={18} />, badge: appointments.filter(a => a.status === 'agendado').length || undefined },
+    { id: 'agenda', label: 'Agendamentos', icon: <Calendar size={18} />, badge: appointments.filter(a => a.status === 'agendado').length || undefined },
     { id: 'clientes', label: 'Clientes', icon: <Users size={18} /> },
     { id: 'profissionais', label: 'Profissionais', icon: <Scissors size={18} /> },
     { id: 'servicos', label: 'Serviços', icon: <Sparkles size={18} /> },
@@ -144,7 +144,21 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
     setAptNotes('');
   };
 
-  const currentModuleName = navItems.find(i => i.id === activeModule)?.label || 'Visão Geral';
+  const moduleLabels: Record<string, string> = {
+    'visao-geral': 'Visão Geral',
+    'financeiro': 'Financeiro',
+    'caixa': 'Caixa',
+    'agenda': 'Agendamentos',
+    'clientes': 'Clientes',
+    'profissionais': 'Profissionais',
+    'servicos': 'Serviços',
+    'produtos': 'Produtos',
+    'vitrine': 'Vitrine',
+    'conversas': 'Conversas',
+    'personalizacao': 'Personalização',
+    'diagnostico': 'Diagnóstico de Dados',
+  };
+  const currentModuleName = moduleLabels[activeModule] || 'Visão Geral';
 
   return (
     <div className="min-h-screen bg-[#08080a] text-neutral-100 flex flex-row">
@@ -161,6 +175,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
         currentRole="admin"
         onSwitchRole={onSwitchRole}
+        onBackToPublic={onBackToPublic}
+        onLogout={onLogout}
       />
 
       {/* 2. MAIN WORKSPACE */}
@@ -185,13 +201,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <button
               onClick={onBackToPublic}
-              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg text-neutral-400 hover:text-white hover:bg-white/5 border border-white/5 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg text-neutral-300 hover:text-white hover:bg-white/5 border border-white/10 transition-colors cursor-pointer"
+              title="Retornar à Tela Inicial"
             >
               <ArrowLeft size={14} />
-              <span>Ver Vitrine Pública</span>
+              <span>Tela Inicial</span>
             </button>
 
             {onLogout && (
@@ -204,14 +221,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <span>Sair</span>
               </button>
             )}
-
-            <Button
-              size="sm"
-              onClick={() => setIsNewAptModalOpen(true)}
-              icon={<Plus size={15} />}
-            >
-              Novo Agendamento
-            </Button>
           </div>
         </header>
 

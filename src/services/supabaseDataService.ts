@@ -59,10 +59,7 @@ export const SupabaseDataService = {
   },
 
   createService: async (service: Omit<Service, 'id'>): Promise<Service> => {
-    const local = StorageService.addService(service);
-    if (!isSupabaseConfigured() || !supabase) return local;
-
-    try {
+    if (isSupabaseConfigured() && supabase) {
       const { data, error } = await supabase
         .from('servicos')
         .insert({
@@ -71,7 +68,7 @@ export const SupabaseDataService = {
           duration_minutes: service.durationMinutes,
           price_brl: service.priceBRL,
           description: service.description,
-          image_url: service.image,
+          image_url: service.image || '/src/assets/images/service_luxury_haircare_1793577408044.jpg',
           popular: service.popular || false,
           featured_in_vitrine: service.featuredInVitrine ?? true,
           ativo: service.active ?? true,
@@ -79,16 +76,76 @@ export const SupabaseDataService = {
         .select()
         .single();
 
-      if (!error && data) {
-        return {
-          ...local,
-          id: data.id,
-        };
+      if (error || !data) {
+        throw new Error(`Falha ao salvar serviço no Supabase: ${error?.message || 'Erro desconhecido'}`);
       }
-    } catch (e) {
-      console.warn('Persistência remota de serviço falhou, mantido localmente:', e);
+
+      const newSrv: Service = {
+        id: data.id,
+        name: data.name,
+        category: data.category,
+        durationMinutes: Number(data.duration_minutes ?? 60),
+        priceBRL: Number(data.price_brl ?? 0),
+        description: data.description || '',
+        image: data.image_url || '',
+        popular: Boolean(data.popular),
+        featuredInVitrine: Boolean(data.featured_in_vitrine ?? true),
+        active: Boolean(data.ativo ?? true),
+      };
+
+      StorageService.addService(newSrv);
+      return newSrv;
+    } else {
+      return StorageService.addService(service);
     }
-    return local;
+  },
+
+  updateService: async (id: string, service: Partial<Service>): Promise<boolean> => {
+    if (isSupabaseConfigured() && supabase) {
+      const updatePayload: any = {};
+      if (service.name !== undefined) updatePayload.name = service.name;
+      if (service.category !== undefined) updatePayload.category = service.category;
+      if (service.durationMinutes !== undefined) updatePayload.duration_minutes = service.durationMinutes;
+      if (service.priceBRL !== undefined) updatePayload.price_brl = service.priceBRL;
+      if (service.description !== undefined) updatePayload.description = service.description;
+      if (service.image !== undefined) updatePayload.image_url = service.image;
+      if (service.popular !== undefined) updatePayload.popular = service.popular;
+      if (service.featuredInVitrine !== undefined) updatePayload.featured_in_vitrine = service.featuredInVitrine;
+      if (service.active !== undefined) updatePayload.ativo = service.active;
+      updatePayload.updated_at = new Date().toISOString();
+
+      const { error } = await supabase
+        .from('servicos')
+        .update(updatePayload)
+        .eq('id', id);
+
+      if (error) {
+        throw new Error(`Falha ao atualizar serviço no Supabase: ${error.message}`);
+      }
+      StorageService.updateService(id, service);
+      return true;
+    } else {
+      StorageService.updateService(id, service);
+      return true;
+    }
+  },
+
+  deleteService: async (id: string): Promise<boolean> => {
+    if (isSupabaseConfigured() && supabase) {
+      const { error } = await supabase
+        .from('servicos')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        throw new Error(`Falha ao excluir serviço no Supabase: ${error.message}`);
+      }
+      StorageService.deleteService(id);
+      return true;
+    } else {
+      StorageService.deleteService(id);
+      return true;
+    }
   },
 
   // --------------------------------------------------------------------------

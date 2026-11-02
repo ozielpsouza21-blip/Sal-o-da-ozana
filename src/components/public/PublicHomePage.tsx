@@ -81,15 +81,12 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
 
   return (
     <div className="min-h-screen bg-[#08080a] text-neutral-100 flex flex-col">
-      {/* 1. HERO CAROUSEL BANNER WITH 3D PARTICLES */}
+      {/* 1. HERO CAROUSEL BANNER */}
       <section 
-        className="relative w-full h-[600px] sm:h-[680px] lg:h-[760px] overflow-hidden bg-[#08080a]"
+        className="relative w-full h-[540px] sm:h-[620px] lg:h-[700px] overflow-hidden bg-[#08080a]"
         onMouseEnter={() => setIsAutoPlaying(false)}
         onMouseLeave={() => setIsAutoPlaying(true)}
       >
-        {/* 3D Golden Particles Effect */}
-        {show3dParticles && <Opening3dEffect />}
-
         {/* Carousel Slides */}
         {slides.map((slide, idx) => (
           <div
@@ -184,7 +181,25 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
         </div>
       </section>
 
-      {/* 2. EXPERIENCE & THE SANCTUARY */}
+      {/* 2. 3D GOLDEN PARTICLES ANIMATION (LOGO ABAIXO DO BANNER) */}
+      {show3dParticles && (
+        <section className="relative w-full h-44 sm:h-52 bg-gradient-to-b from-[#08080a] via-[#121218] to-[#08080a] border-y border-[#d4af37]/30 overflow-hidden flex items-center justify-center">
+          <div className="absolute inset-0 z-0">
+            <Opening3dEffect />
+          </div>
+          <div className="relative z-10 text-center px-4 space-y-1.5 pointer-events-none">
+            <div className="flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-[0.3em] text-[#d4af37]">
+              <Sparkles size={15} />
+              <span>Experiência Visual 3D Exclusiva</span>
+            </div>
+            <p className="text-xs sm:text-sm text-neutral-300 font-serif">
+              Sra. Bela Mulher Atelier · Partículas Douradas & Profundidade Sensorial
+            </p>
+          </div>
+        </section>
+      )}
+
+      {/* 3. EXPERIENCE & THE SANCTUARY */}
       <section className="py-24 bg-[#08080a] relative">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
@@ -253,7 +268,7 @@ export const PublicHomePage: React.FC<PublicHomePageProps> = ({
         </div>
       </section>
 
-      {/* 3. PUBLIC FOOTER */}
+      {/* 4. PUBLIC FOOTER */}
       <footer className="mt-auto bg-[#060608] border-t border-white/[0.08] pt-14 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-10 pb-12 border-b border-white/[0.06]">

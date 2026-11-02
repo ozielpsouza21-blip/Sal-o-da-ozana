@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Sparkles, Calendar, Clock, Star, ShoppingBag, ShieldCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Sparkles, Calendar, Clock, Star, ShoppingBag, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Service, Product, Professional } from '../../types';
 import { Card } from '../common/Card';
 import { Button } from '../common/Button';
@@ -20,29 +20,112 @@ export const VitrineView: React.FC<VitrineViewProps> = ({
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const categories = ['Todos', 'Cabelos', 'Unhas', 'Estética', 'Noivas'];
 
+  // Banner Carousel State
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isAutoPlaying, setIsAutoPlaying] = useState(true);
+
+  const bannerSlides = [
+    {
+      image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&w=1600&q=80',
+      title: 'Vitrine Comercial & Procedimentos de Alta Gestão',
+      subtitle: 'Conheça nossos rituais capilares, estética avançada e a boutique Home Care exclusiva.',
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1600&q=80',
+      title: 'Balayage & Morena Iluminada Signature',
+      subtitle: 'Especialistas em mechas de alto padrão com preservação absoluta da fibra capilar.',
+    },
+    {
+      image: 'https://images.unsplash.com/photo-1604654894610-df63bc536371?auto=format&fit=crop&w=1600&q=80',
+      title: 'Nail Couture & Spa Champagne',
+      subtitle: 'Tratamentos de unhas com cutilagem russa e acabamento duradouro.',
+    },
+  ];
+
+  useEffect(() => {
+    if (!isAutoPlaying) return;
+    const interval = setInterval(() => {
+      setCurrentSlide(prev => (prev + 1) % bannerSlides.length);
+    }, 5500);
+    return () => clearInterval(interval);
+  }, [isAutoPlaying, bannerSlides.length]);
+
   const filteredServices = selectedCategory === 'Todos'
     ? services
     : services.filter(s => s.category.toLowerCase().includes(selectedCategory.toLowerCase()));
 
   return (
-    <div className="min-h-screen bg-[#08080a] text-neutral-100 flex flex-col py-12">
+    <div className="min-h-screen bg-[#08080a] text-neutral-100 flex flex-col pb-16">
+      {/* 1. TOP CAROUSEL BANNER FOR VITRINE */}
+      <section 
+        className="relative w-full h-[380px] sm:h-[460px] overflow-hidden bg-[#08080a] mb-12 border-b border-white/10"
+        onMouseEnter={() => setIsAutoPlaying(false)}
+        onMouseLeave={() => setIsAutoPlaying(true)}
+      >
+        {bannerSlides.map((slide, idx) => (
+          <div
+            key={idx}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+              idx === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+            }`}
+          >
+            <img
+              src={slide.image}
+              alt={slide.title}
+              className="w-full h-full object-cover object-center scale-105 transition-transform duration-10000"
+              referrerPolicy="no-referrer"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-[#08080a] via-[#08080a]/60 to-[#08080a]/30" />
+
+            <div className="relative max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8 flex flex-col justify-center items-center text-center z-10 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-semibold tracking-[0.25em] text-[#d4af37] uppercase">
+                <Sparkles size={15} />
+                <span>Cardápio & Boutique Sra. Bela Mulher</span>
+              </div>
+              <h1 className="text-2xl sm:text-4xl lg:text-5xl font-serif font-normal text-white max-w-3xl">
+                {slide.title}
+              </h1>
+              <p className="text-xs sm:text-sm text-neutral-300 max-w-2xl font-light">
+                {slide.subtitle}
+              </p>
+            </div>
+          </div>
+        ))}
+
+        {/* Carousel controls */}
+        <div className="absolute bottom-6 right-6 z-20 flex items-center gap-2">
+          <button
+            onClick={() => setCurrentSlide((currentSlide - 1 + bannerSlides.length) % bannerSlides.length)}
+            className="p-2.5 rounded-full bg-[#121217]/80 hover:bg-[#1a1a24] text-neutral-200 hover:text-[#f3e5ab] border border-white/10 transition-colors cursor-pointer"
+            aria-label="Anterior"
+          >
+            <ChevronLeft size={18} />
+          </button>
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#121217]/80 border border-white/10">
+            {bannerSlides.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentSlide(i)}
+                className={`transition-all duration-300 rounded-full ${
+                  i === currentSlide ? 'w-5 h-1.5 bg-[#d4af37]' : 'w-1.5 h-1.5 bg-neutral-600'
+                }`}
+                aria-label={`Slide ${i + 1}`}
+              />
+            ))}
+          </div>
+          <button
+            onClick={() => setCurrentSlide((currentSlide + 1) % bannerSlides.length)}
+            className="p-2.5 rounded-full bg-[#121217]/80 hover:bg-[#1a1a24] text-neutral-200 hover:text-[#f3e5ab] border border-white/10 transition-colors cursor-pointer"
+            aria-label="Próximo"
+          >
+            <ChevronRight size={18} />
+          </button>
+        </div>
+      </section>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full space-y-16">
         
-        {/* Header Title */}
-        <div className="text-center max-w-3xl mx-auto space-y-3">
-          <div className="flex items-center justify-center gap-2 text-xs font-semibold tracking-[0.25em] text-[#d4af37] uppercase">
-            <Sparkles size={15} />
-            <span>Cardápio & Boutique Sra. Bela Mulher</span>
-          </div>
-          <h1 className="text-3xl sm:text-5xl font-serif font-normal text-white">
-            Vitrine Comercial & Serviços de Luxo
-          </h1>
-          <p className="text-sm text-neutral-400 leading-relaxed font-light">
-            Explore nossa seleção completa de rituais capilares, estética avançada, produtos Home Care de prestígio e o corpo de especialistas do atelier.
-          </p>
-        </div>
-
-        {/* 1. SERVICES SECTION */}
+        {/* 2. SERVICES SECTION */}
         <section className="space-y-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-white/10 pb-6">
             <div>
@@ -137,7 +220,7 @@ export const VitrineView: React.FC<VitrineViewProps> = ({
           </div>
         </section>
 
-        {/* 2. PRODUCTS / HOME CARE BOUTIQUE */}
+        {/* 3. PRODUCTS / HOME CARE BOUTIQUE */}
         <section className="space-y-8 pt-6 border-t border-white/10">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div>
@@ -200,7 +283,7 @@ export const VitrineView: React.FC<VitrineViewProps> = ({
           </div>
         </section>
 
-        {/* 3. PROFESSIONALS TEAM */}
+        {/* 4. PROFESSIONALS TEAM */}
         <section className="space-y-8 pt-6 border-t border-white/10">
           <div className="text-center max-w-2xl mx-auto">
             <span className="text-xs font-semibold tracking-widest uppercase text-[#d4af37]">

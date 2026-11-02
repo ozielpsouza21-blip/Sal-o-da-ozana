@@ -282,42 +282,46 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#08080a] text-neutral-100 flex flex-col font-sans selection:bg-[#d4af37]/30 selection:text-[#f3e5ab] pb-24">
-      {/* External Side Menu */}
-      <ExternalSideMenu
-        onOpenAdmin={() => handleSelectRole('admin')}
-        onOpenClient={() => handleSelectRole('client')}
-        onOpenProfessional={() => handleSelectRole('professional')}
-        hasAuthUser={!!authUserEmail}
-        onOpenClientAuth={() => {
-          setClientAuthInitialMode('login');
-          setIsClientAuthOpen(true);
-        }}
-        onOpenProAuth={() => {
-          setProAuthInitialMode('login');
-          setIsProAuthOpen(true);
-        }}
-      />
+      {/* External Side Menu (Public only) */}
+      {role === 'visitor' && (
+        <ExternalSideMenu
+          onOpenAdmin={() => handleSelectRole('admin')}
+          onOpenClient={() => handleSelectRole('client')}
+          onOpenProfessional={() => handleSelectRole('professional')}
+          hasAuthUser={!!authUserEmail}
+          onOpenClientAuth={() => {
+            setClientAuthInitialMode('login');
+            setIsClientAuthOpen(true);
+          }}
+          onOpenProAuth={() => {
+            setProAuthInitialMode('login');
+            setIsProAuthOpen(true);
+          }}
+        />
+      )}
 
-      {/* Fixed Footer Navigation Bar (Início, Vitrine, Cliente, Profissional, Chat) */}
-      <FixedFooterNav
-        currentRole={role}
-        activePublicTab={publicTab}
-        onSelectRole={newRole => setRole(newRole)}
-        onSelectPublicTab={tab => setPublicTab(tab)}
-        onOpenClientAuth={() => {
-          setClientAuthInitialMode('login');
-          setIsClientAuthOpen(true);
-        }}
-        onOpenProAuth={() => {
-          setProAuthInitialMode('login');
-          setIsProAuthOpen(true);
-        }}
-        onOpenChat={() => {
-          const chatBtn = document.querySelector('[aria-label="Abrir chat do concierge"]') as HTMLButtonElement;
-          if (chatBtn) chatBtn.click();
-        }}
-        hasAuthUser={!!authUserEmail}
-      />
+      {/* Fixed Footer Navigation Bar (Public only) */}
+      {role === 'visitor' && (
+        <FixedFooterNav
+          currentRole={role}
+          activePublicTab={publicTab}
+          onSelectRole={newRole => setRole(newRole)}
+          onSelectPublicTab={tab => setPublicTab(tab)}
+          onOpenClientAuth={() => {
+            setClientAuthInitialMode('login');
+            setIsClientAuthOpen(true);
+          }}
+          onOpenProAuth={() => {
+            setProAuthInitialMode('login');
+            setIsProAuthOpen(true);
+          }}
+          onOpenChat={() => {
+            const chatBtn = document.querySelector('[aria-label="Abrir chat do concierge"]') as HTMLButtonElement;
+            if (chatBtn) chatBtn.click();
+          }}
+          hasAuthUser={!!authUserEmail}
+        />
+      )}
       {/* Real Supabase Auth View when Auth mode is triggered */}
       {isAuthViewOpen ? (
         <>

@@ -67,6 +67,21 @@ export const StorageService = {
     StorageService.saveServices(updated);
     return newService;
   },
+  updateService: (id: string, updates: Partial<Service>): Service | null => {
+    const current = StorageService.getServices();
+    const index = current.findIndex(s => s.id === id);
+    if (index === -1) return null;
+    current[index] = { ...current[index], ...updates };
+    StorageService.saveServices(current);
+    return current[index];
+  },
+  deleteService: (id: string): boolean => {
+    const current = StorageService.getServices();
+    const updated = current.filter(s => s.id !== id);
+    if (updated.length === current.length) return false;
+    StorageService.saveServices(updated);
+    return true;
+  },
 
   // Professionals
   getProfessionals: (): Professional[] => safeGet(STORAGE_KEYS.PROFESSIONALS, INITIAL_PROFESSIONALS),

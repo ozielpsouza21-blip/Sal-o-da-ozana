@@ -15,6 +15,7 @@ import {
   MessageSquare,
   Shield,
   Send,
+  LogOut,
 } from 'lucide-react';
 import { Appointment, Professional, ProfessionalTab } from '../../types';
 import { Card } from '../common/Card';
@@ -128,23 +129,34 @@ export const ProfessionalPortal: React.FC<ProfessionalPortalProps> = ({
             </div>
           </div>
 
-          {/* Switch Active Professional (Test Selector) */}
-          <div className="flex items-center gap-2 bg-[#14141c] px-3 py-1.5 rounded-lg border border-white/10 text-xs w-full sm:w-auto justify-between sm:justify-end">
-            <span className="text-neutral-400">Trocar Especialista:</span>
-            <select
-              value={currentPro.id}
-              onChange={e => {
-                const found = professionals.find(p => p.id === e.target.value);
-                if (found) onSelectPro(found);
-              }}
-              className="bg-transparent text-[#f3e5ab] font-medium focus:outline-none cursor-pointer"
+          {/* Switch Active Professional & Sair */}
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            <div className="flex items-center gap-2 bg-[#14141c] px-3 py-1.5 rounded-lg border border-white/10 text-xs">
+              <span className="text-neutral-400">Trocar Especialista:</span>
+              <select
+                value={currentPro.id}
+                onChange={e => {
+                  const found = professionals.find(p => p.id === e.target.value);
+                  if (found) onSelectPro(found);
+                }}
+                className="bg-transparent text-[#f3e5ab] font-medium focus:outline-none cursor-pointer"
+              >
+                {professionals.map(p => (
+                  <option key={p.id} value={p.id} className="bg-[#121216] text-white">
+                    {p.name} ({p.roleTitle.split('&')[0]})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={onBackToPublic}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#14141c] hover:bg-[#1a1a26] text-red-400 border border-red-500/20 transition-colors cursor-pointer"
+              title="Encerrar sessão e retornar à tela pública"
             >
-              {professionals.map(p => (
-                <option key={p.id} value={p.id} className="bg-[#121216] text-white">
-                  {p.name} ({p.roleTitle.split('&')[0]})
-                </option>
-              ))}
-            </select>
+              <LogOut size={14} />
+              <span>Sair</span>
+            </button>
           </div>
         </div>
 

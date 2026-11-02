@@ -16,6 +16,7 @@ import {
   Camera,
   Coffee,
   X,
+  LogOut,
 } from 'lucide-react';
 import { Appointment, ClientProfile, ClientTab, Professional, Service } from '../../types';
 import { Card } from '../common/Card';
@@ -155,6 +156,18 @@ export const ClientPortal: React.FC<ClientPortalProps> = ({
             referrerPolicy="no-referrer"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d12] via-[#0d0d12]/40 to-transparent" />
+
+          {/* Sair Button */}
+          <div className="absolute top-3 left-4 z-10">
+            <button
+              onClick={onBackToPublic}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-black/75 backdrop-blur-md border border-white/10 text-neutral-200 hover:text-white hover:bg-black transition-colors cursor-pointer"
+              title="Encerrar sessão e retornar à tela pública"
+            >
+              <LogOut size={14} className="text-red-400" />
+              <span>Sair</span>
+            </button>
+          </div>
 
           {/* Client Profile Selector (demo test switcher) */}
           <div className="absolute top-3 right-4 max-w-7xl mx-auto flex items-center gap-2 bg-black/70 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10 text-xs z-10">
