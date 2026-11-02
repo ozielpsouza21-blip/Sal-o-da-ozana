@@ -1,0 +1,6 @@
+{
+  "name": "Sra. Bela Mulher",
+  "description": "Aplicativo web premium para gestão profissional de salão de beleza, vitrine pública, área exclusiva da cliente, área do profissional e painel administrativo completo.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
